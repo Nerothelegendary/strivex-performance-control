@@ -2,11 +2,34 @@ import { Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { lovable } from "@/integrations/lovable";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
+  const { user, role, loading } = useAuth();
+
   const handleGoogleLogin = async () => {
-    await lovable.auth.signInWithOAuth("google");
+    await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (user && role) {
+    return <Navigate to={role === "trainer" ? "/trainer" : "/student"} replace />;
+  }
+
+  if (user && !role) {
+    return <Navigate to="/select-role" replace />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
