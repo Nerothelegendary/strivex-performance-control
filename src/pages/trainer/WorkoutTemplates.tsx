@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, ChevronRight, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 export default function WorkoutTemplates() {
@@ -60,31 +61,28 @@ export default function WorkoutTemplates() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/trainer")}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/trainer")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h2 className="text-xl font-semibold text-white">Modelos de Treino</h2>
-              <p className="text-sm text-white/40">{templates.length} modelo(s)</p>
+              <h2 className="text-xl font-semibold text-foreground">Modelos de Treino</h2>
+              <p className="text-sm text-muted-foreground">{templates.length} modelo(s)</p>
             </div>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }}>
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Plus className="h-4 w-4 mr-1" /> Novo Treino
               </Button>
             </DialogTrigger>
-            <DialogContent className="border-white/10 bg-[hsl(222,47%,11%)] text-white">
+            <DialogContent className="border-border bg-popover text-popover-foreground">
               <DialogHeader>
-                <DialogTitle className="text-white">Novo Modelo de Treino</DialogTitle>
+                <DialogTitle>Novo Modelo de Treino</DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
-                <Input placeholder="Nome do treino" value={name} onChange={(e) => setName(e.target.value)}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-                <Textarea placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-                <Button onClick={createTemplate} disabled={!name.trim()} className="w-full"
-                  style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }}>
+                <Input placeholder="Nome do treino" value={name} onChange={(e) => setName(e.target.value)} />
+                <Textarea placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Button onClick={createTemplate} disabled={!name.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                   Criar
                 </Button>
               </div>
@@ -93,25 +91,33 @@ export default function WorkoutTemplates() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-white/40">Carregando...</p>
+          <p className="text-sm text-muted-foreground">Carregando...</p>
         ) : templates.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-12 text-center">
-            <p className="text-sm text-white/40">Nenhum modelo criado.</p>
+          <div className="rounded-xl border border-dashed border-border bg-card/20 py-12 text-center">
+            <p className="text-sm text-muted-foreground">Nenhum modelo criado.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {templates.map((t) => (
-              <div key={t.id} className="rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] transition-all">
+              <div key={t.id} className="rounded-xl border border-border bg-card/40 hover:bg-card/70 transition-all">
                 <div className="py-3 px-4 flex items-center justify-between">
                   <div className="flex-1 cursor-pointer" onClick={() => navigate(`/trainer/template/${t.id}`)}>
-                    <p className="text-sm font-medium text-white">{t.name}</p>
-                    {t.description && <p className="text-xs text-white/40">{t.description}</p>}
+                    <p className="text-sm font-medium text-foreground">{t.name}</p>
+                    {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-red-400 hover:bg-white/10" onClick={() => deleteTemplate(t.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <ChevronRight className="h-4 w-4 text-white/20" />
+                    <ConfirmDialog
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      }
+                      title="Excluir treino"
+                      description="Tem certeza que deseja excluir este modelo de treino? Esta ação não pode ser desfeita."
+                      confirmLabel="Excluir"
+                      onConfirm={() => deleteTemplate(t.id)}
+                    />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                   </div>
                 </div>
               </div>

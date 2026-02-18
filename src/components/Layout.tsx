@@ -11,9 +11,8 @@ export function Layout({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center"
-           style={{ background: 'hsl(222 47% 8%)' }}>
-        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -37,27 +36,27 @@ export function Layout({ children }: { children: ReactNode }) {
     .toUpperCase() || "?";
 
   return (
-    <div className="min-h-screen" style={{ background: 'hsl(222 47% 8%)' }}>
-      <header className="sticky top-0 z-50 border-b border-white/10"
-              style={{ background: 'hsl(222 47% 6% / 0.95)', backdropFilter: 'blur(12px)' }}>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 border-b border-border"
+              style={{ background: 'var(--header-bg)', backdropFilter: 'blur(12px)' }}>
         <div className="container flex h-12 items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg"
-                 style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }}>
-              <Dumbbell className="h-3.5 w-3.5 text-white" />
+                 style={{ background: 'var(--gradient-primary)' }}>
+              <Dumbbell className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="text-sm font-bold tracking-wider text-white uppercase">Strivex</span>
+            <span className="text-sm font-bold tracking-wider text-foreground uppercase">Strivex</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium leading-none text-white/90">Olá, {firstName}</p>
-              <p className="text-[11px] text-white/40">{roleLabel}</p>
+              <p className="text-sm font-medium leading-none text-foreground">Olá, {firstName}</p>
+              <p className="text-[11px] text-muted-foreground">{roleLabel}</p>
             </div>
-            <Avatar className="h-7 w-7 border border-white/20">
+            <Avatar className="h-7 w-7 border border-border">
               <AvatarImage src={profile?.avatar_url ?? undefined} />
-              <AvatarFallback className="text-xs bg-white/10 text-white/70">{initials}</AvatarFallback>
+              <AvatarFallback className="text-xs bg-secondary text-muted-foreground">{initials}</AvatarFallback>
             </Avatar>
-            <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10">
+            <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

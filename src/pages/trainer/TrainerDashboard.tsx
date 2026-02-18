@@ -3,12 +3,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Dumbbell, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { differenceInDays } from "date-fns";
+import { MetricCard } from "@/components/trainer/MetricCard";
+import { StudentCard } from "@/components/trainer/StudentCard";
+import { StudentCardSkeleton } from "@/components/trainer/StudentCardSkeleton";
+import { getStatusInfo } from "@/components/trainer/StatusBadge";
 
 interface StudentData {
   student_id: string;
@@ -90,15 +92,6 @@ export default function TrainerDashboard() {
     setLoading(false);
   };
 
-  const getStatusInfo = (lastSession: string | null, assignedTemplates: number) => {
-    if (assignedTemplates === 0) return { label: "Aguardando programação", variant: "warning" as const };
-    if (!lastSession) return { label: "Aguardando primeiro treino", variant: "warning" as const };
-    const days = differenceInDays(new Date(), new Date(lastSession));
-    if (days <= 4) return { label: "Em dia", variant: "success" as const };
-    if (days <= 6) return { label: "Atenção", variant: "warning" as const };
-    return { label: "Inativo", variant: "danger" as const };
-  };
-
   const filteredStudents = students.filter((s) => {
     const matchesSearch = !searchQuery || (s.full_name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
@@ -129,20 +122,27 @@ export default function TrainerDashboard() {
     toast.success("Link copiado para a área de transferência!");
   };
 
+  const statusFilters = [
+    { key: null, label: "Todos" },
+    { key: "success", label: "Em dia" },
+    { key: "warning", label: "Atenção" },
+    { key: "danger", label: "Inativo" },
+  ] as const;
+
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
         <div className="space-y-3">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">Painel do Treinador</h1>
-            <p className="text-xs text-white/40 mt-0.5">Visão geral dos seus alunos e treinos</p>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Painel do Treinador</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Visão geral dos seus alunos e treinos</p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="flex-1 border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white" onClick={() => navigate("/trainer/templates")}>
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/trainer/templates")}>
               <FileText className="h-4 w-4 mr-1" /> Treinos
             </Button>
-            <Button size="sm" className="flex-1" style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }} onClick={generateInvite}>
+            <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={generateInvite}>
               <Link2 className="h-4 w-4 mr-1" /> Convidar
             </Button>
           </div>
@@ -150,59 +150,44 @@ export default function TrainerDashboard() {
 
         {/* Invite Link Banner */}
         {inviteLink && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center justify-between gap-2">
-            <code className="text-xs truncate flex-1 text-white/50">{inviteLink}</code>
+          <div className="rounded-xl border border-border bg-secondary p-3 flex items-center justify-between gap-2">
+            <code className="text-xs truncate flex-1 text-muted-foreground">{inviteLink}</code>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10"
+              <Button size="sm" variant="ghost"
                 onClick={() => { navigator.clipboard.writeText(inviteLink); toast.success("Copiado!"); setTimeout(() => setInviteLink(null), 1500); }}>
                 <Copy className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => setInviteLink(null)}>✕</Button>
+              <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)}>✕</Button>
             </div>
           </div>
         )}
 
         {/* Summary Metrics */}
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { icon: Users, value: students.length, label: "Alunos ativos" },
-            { icon: ClipboardList, value: totalAssigned, label: "Treinos atribuídos" },
-            { icon: CheckCircle2, value: weeklyCompleted, label: "Concluídos na semana" },
-          ].map(({ icon: Icon, value, label }) => (
-            <div key={label} className="rounded-xl border border-white/10 bg-white/[0.04] p-5 text-center">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 mx-auto mb-2">
-                <Icon className="h-3.5 w-3.5 text-white/70" />
-              </div>
-              <p className="text-xl font-bold text-white">{value}</p>
-              <p className="text-[10px] text-white/40 leading-tight mt-0.5">{label}</p>
-            </div>
-          ))}
+          <MetricCard icon={Users} value={students.length} label="Alunos ativos" loading={loading} />
+          <MetricCard icon={ClipboardList} value={totalAssigned} label="Treinos atribuídos" loading={loading} />
+          <MetricCard icon={CheckCircle2} value={weeklyCompleted} label="Concluídos na semana" loading={loading} />
         </div>
 
         {/* Student List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Alunos</h2>
-            <p className="text-xs text-white/40">{filteredStudents.length} aluno(s)</p>
+            <h2 className="text-lg font-semibold text-foreground">Alunos</h2>
+            <p className="text-xs text-muted-foreground">{filteredStudents.length} aluno(s)</p>
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar aluno..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm"
+              className="pl-9 h-9 text-sm"
             />
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            {[
-              { key: null, label: "Todos" },
-              { key: "success", label: "Em dia" },
-              { key: "warning", label: "Atenção" },
-              { key: "danger", label: "Inativo" },
-            ].map((f) => (
+            {statusFilters.map((f) => (
               <button
                 key={f.label}
                 onClick={() => setStatusFilter(f.key)}
@@ -214,8 +199,8 @@ export default function TrainerDashboard() {
                       ? "bg-yellow-400/20 text-yellow-300 border-yellow-400/30"
                       : f.key === "danger"
                       ? "bg-red-400/20 text-red-300 border-red-400/30"
-                      : "bg-white/15 text-white border-white/20"
-                    : "bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70"
+                      : "bg-secondary text-foreground border-border"
+                    : "bg-card/40 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
                 }`}
               >
                 {f.label}
@@ -224,53 +209,26 @@ export default function TrainerDashboard() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-white/40">Carregando...</p>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => <StudentCardSkeleton key={i} />)}
+            </div>
           ) : students.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-12 text-center">
-              <Users className="h-10 w-10 text-white/20 mx-auto mb-3" />
-              <p className="text-sm text-white/40">Nenhum aluno vinculado ainda.</p>
-              <p className="text-xs text-white/25 mt-1">Gere um link de convite para adicionar alunos.</p>
+            <div className="rounded-xl border border-dashed border-border bg-card/20 py-12 text-center">
+              <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Gere um link de convite para adicionar alunos.</p>
             </div>
           ) : (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              {filteredStudents.map((s) => {
-                const status = getStatusInfo(s.last_session_at, s.assigned_templates);
-                return (
-                  <div
-                    key={s.student_id}
-                    className="rounded-xl border border-white/10 bg-white/[0.04] p-5 space-y-3 cursor-pointer hover:bg-white/[0.07] active:scale-[0.98] transition-all"
-                    onClick={() => navigate(`/trainer/student/${s.student_id}`)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold truncate text-white">{s.full_name || "Sem nome"}</p>
-                      <Badge className={
-                        status.variant === "success"
-                          ? "bg-emerald-400/15 text-emerald-300 border-emerald-400/20 text-[10px] px-2 py-0.5"
-                          : status.variant === "warning"
-                          ? "bg-yellow-400/15 text-yellow-300 border-yellow-400/20 text-[10px] px-2 py-0.5"
-                          : "bg-red-400/15 text-red-300 border-red-400/20 text-[10px] px-2 py-0.5"
-                      }>{status.label}</Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/40">Treino ativo: {s.assigned_templates > 0 ? `${s.assigned_templates} atribuído(s)` : "Nenhum"}</p>
-                      <p className="text-xs text-white/40">
-                        Última atividade:{" "}
-                        {s.last_session_at ? `${differenceInDays(new Date(), new Date(s.last_session_at))} dia(s) atrás` : "—"}
-                      </p>
-                    </div>
-                    <div className="flex justify-end pt-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white text-xs h-7 px-2.5"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/trainer/student/${s.student_id}`); }}
-                      >
-                        <Dumbbell className="h-3 w-3 mr-1" /> Atribuir Treino
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+              {filteredStudents.map((s) => (
+                <StudentCard
+                  key={s.student_id}
+                  studentId={s.student_id}
+                  fullName={s.full_name}
+                  lastSessionAt={s.last_session_at}
+                  assignedTemplates={s.assigned_templates}
+                />
+              ))}
             </div>
           )}
         </div>

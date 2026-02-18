@@ -33,20 +33,20 @@ export default function AcceptInvite() {
   return (
     <PageTransition>
     <div className="flex min-h-screen items-center justify-center"
-         style={{ background: 'radial-gradient(ellipse at center 40%, hsl(224 76% 12%) 0%, hsl(222 47% 8%) 60%, hsl(222 50% 5%) 100%)' }}>
+         style={{ background: 'var(--glow-bg)' }}>
       <div className="text-center space-y-3">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
-             style={{ background: 'radial-gradient(circle at 40% 40%, hsl(217 91% 60%), hsl(224 76% 33%))' }}>
-          <Dumbbell className="h-8 w-8 text-white" />
+             style={{ background: 'var(--icon-orb)' }}>
+          <Dumbbell className="h-8 w-8 text-primary-foreground" />
         </div>
         {status === "loading" && (
           <>
-            <Loader2 className="h-6 w-6 animate-spin mx-auto text-white/40" />
-            <p className="text-sm text-white/50">Processando convite...</p>
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Processando convite...</p>
           </>
         )}
         {status === "success" && <p className="text-sm text-emerald-400">Vinculado com sucesso! Redirecionando...</p>}
-        {status === "error" && <p className="text-sm text-red-400">Convite inválido ou expirado.</p>}
+        {status === "error" && <p className="text-sm text-destructive">Convite inválido ou expirado.</p>}
       </div>
     </div>
     </PageTransition>

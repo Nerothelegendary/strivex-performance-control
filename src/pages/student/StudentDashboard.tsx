@@ -42,7 +42,7 @@ export default function StudentDashboard() {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </Layout>
     );
@@ -54,28 +54,28 @@ export default function StudentDashboard() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold text-white">Meus Treinos</h2>
-          <p className="text-sm text-white/40">Escolha um treino para iniciar</p>
+          <h2 className="text-xl font-semibold text-foreground">Meus Treinos</h2>
+          <p className="text-sm text-muted-foreground">Escolha um treino para iniciar</p>
         </div>
 
         {templates.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
-              <ClipboardList className="h-7 w-7 text-white/20" />
+          <div className="rounded-xl border border-dashed border-border bg-card/20 py-16 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+              <ClipboardList className="h-7 w-7 text-muted-foreground" />
             </div>
-            <p className="text-base font-medium text-white/70">Seu treinador ainda não enviou seu treino.</p>
-            <p className="text-sm text-white/30 mt-1.5">Assim que ele criar sua rotina, ela aparecerá aqui.</p>
+            <p className="text-base font-medium text-foreground/70">Seu treinador ainda não enviou seu treino.</p>
+            <p className="text-sm text-muted-foreground mt-1.5">Assim que ele criar sua rotina, ela aparecerá aqui.</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {templates.map((t) => (
-              <div key={t.id} className="rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] transition-all p-4 flex items-center justify-between">
+              <div key={t.id} className="rounded-xl border border-border bg-card/40 hover:bg-card/70 transition-all p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">{t.name}</p>
-                  {t.description && <p className="text-xs text-white/40">{t.description}</p>}
+                  <p className="text-sm font-medium text-foreground">{t.name}</p>
+                  {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                 </div>
                 <Button size="sm" onClick={() => navigate(`/student/session/${t.id}`)}
-                  style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }}>
+                  className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Play className="h-4 w-4 mr-1" /> Iniciar
                 </Button>
               </div>
@@ -85,15 +85,15 @@ export default function StudentDashboard() {
 
         {recentSessions.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-white/40">Últimas Sessões</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Últimas Sessões</h3>
             {recentSessions.map((s) => (
-              <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.04] p-3 flex justify-between items-center">
+              <div key={s.id} className="rounded-xl border border-border bg-card/40 p-3 flex justify-between items-center">
                 <div>
-                  <p className="text-sm font-medium text-white">{s.template_name}</p>
-                  <p className="text-xs text-white/40">{format(new Date(s.executed_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}</p>
+                  <p className="text-sm font-medium text-foreground">{s.template_name}</p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(s.executed_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-white/40">{Number(s.total_volume).toLocaleString()} kg</p>
+                  <p className="text-xs text-muted-foreground">{Number(s.total_volume).toLocaleString()} kg</p>
                 </div>
               </div>
             ))}
