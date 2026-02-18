@@ -25,12 +25,22 @@ export function Layout({ children }: { children: ReactNode }) {
   }
 
   const roleLabel = role === "trainer" ? "Treinador" : "Aluno";
-  const initials = profile?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
+
+  // Get display name from profile or user metadata
+  const rawName =
+    profile?.full_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email?.split("@")[0] ||
+    "";
+  const firstName = rawName.split(" ")[0];
+
+  const initials = rawName
+    .split(" ")
+    .map((n: string) => n[0])
     .join("")
     .slice(0, 2)
-    .toUpperCase() ?? "?";
+    .toUpperCase() || "?";
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,7 +51,10 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="text-sm font-semibold tracking-tight text-foreground">Strivex</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{roleLabel}</span>
+            <div className="text-right">
+              <p className="text-sm font-medium leading-none text-foreground">Olá, {firstName}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            </div>
             <Avatar className="h-7 w-7">
               <AvatarImage src={profile?.avatar_url ?? undefined} />
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
