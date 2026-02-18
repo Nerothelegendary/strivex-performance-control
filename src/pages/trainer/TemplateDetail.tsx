@@ -126,7 +126,7 @@ export default function TemplateDetail() {
                   <Plus className="h-3 w-3 mr-1" /> Adicionar série
                 </Button>
               </div>
-            ))
+            ))}
           </div>
         )}
 
