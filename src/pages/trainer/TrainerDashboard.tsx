@@ -139,19 +139,19 @@ export default function TrainerDashboard() {
 
   return (
     <Layout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="space-y-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Painel do Treinador</h1>
-            <p className="text-sm text-muted-foreground mt-1">Visão geral dos seus alunos e treinos</p>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Painel do Treinador</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Visão geral dos seus alunos e treinos</p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => navigate("/trainer/templates")}>
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/trainer/templates")}>
               <FileText className="h-4 w-4 mr-1" /> Treinos
             </Button>
-            <Button size="sm" onClick={generateInvite}>
-              <Link2 className="h-4 w-4 mr-1" /> Convidar Aluno
+            <Button size="sm" className="flex-1" onClick={generateInvite}>
+              <Link2 className="h-4 w-4 mr-1" /> Convidar
             </Button>
           </div>
         </div>
@@ -182,38 +182,32 @@ export default function TrainerDashboard() {
         )}
 
         {/* Summary Metrics */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2">
           <Card>
-            <CardContent className="py-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                <Users className="h-4 w-4 text-primary" />
+            <CardContent className="py-4 px-3 text-center">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 mx-auto mb-1.5">
+                <Users className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{students.length}</p>
-                <p className="text-xs text-muted-foreground">Alunos ativos</p>
-              </div>
+              <p className="text-xl font-bold text-foreground">{students.length}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Alunos ativos</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="py-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                <ClipboardList className="h-4 w-4 text-primary" />
+            <CardContent className="py-4 px-3 text-center">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 mx-auto mb-1.5">
+                <ClipboardList className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{totalAssigned}</p>
-                <p className="text-xs text-muted-foreground">Treinos atribuídos</p>
-              </div>
+              <p className="text-xl font-bold text-foreground">{totalAssigned}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Treinos atribuídos</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="py-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+            <CardContent className="py-4 px-3 text-center">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 mx-auto mb-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{weeklyCompleted}</p>
-                <p className="text-xs text-muted-foreground">Concluídos na semana</p>
-              </div>
+              <p className="text-xl font-bold text-foreground">{weeklyCompleted}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Concluídos na semana</p>
             </CardContent>
           </Card>
         </div>
@@ -238,7 +232,7 @@ export default function TrainerDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               {students.map((s) => {
                 const status = getStatusInfo(s.last_session_at, s.assigned_templates);
                 return (
