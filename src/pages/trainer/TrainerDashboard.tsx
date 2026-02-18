@@ -3,8 +3,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Dumbbell } from "lucide-react";
+import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Dumbbell, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
@@ -26,6 +27,7 @@ export default function TrainerDashboard() {
   const [weeklyCompleted, setWeeklyCompleted] = useState(0);
   const [totalAssigned, setTotalAssigned] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +100,8 @@ export default function TrainerDashboard() {
   };
 
   const filteredStudents = students.filter((s) => {
+    const matchesSearch = !searchQuery || (s.full_name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
     if (!statusFilter) return true;
     const status = getStatusInfo(s.last_session_at, s.assigned_templates);
     return status.variant === statusFilter;
@@ -180,6 +184,16 @@ export default function TrainerDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">Alunos</h2>
             <p className="text-xs text-white/40">{filteredStudents.length} aluno(s)</p>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+            <Input
+              placeholder="Buscar aluno..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm"
+            />
           </div>
 
           <div className="flex gap-2 flex-wrap">
