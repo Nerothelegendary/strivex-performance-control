@@ -4,22 +4,54 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dumbbell, Loader2, TicketCheck, LogOut } from "lucide-react";
+import { Loader2, TicketCheck, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate, Navigate } from "react-router-dom";
+
+function extractToken(input: string): string {
+  const trimmed = input.trim();
+  // If user pasted a full URL, extract the token param
+  try {
+    const url = new URL(trimmed);
+    const token = url.searchParams.get("token");
+    if (token) return token;
+  } catch {
+    // Not a URL, use as-is
+  }
+  return trimmed;
+}
 
 export default function EnterInvite() {
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login", { replace: true });
+  };
+
   const handleSubmit = async () => {
-    if (!user || !code.trim()) return;
+    if (!user || !code.trim() || loading) return;
     setLoading(true);
+
+    const token = extractToken(code);
 
     const { data: invite, error: findErr } = await supabase
       .from("invitations")
       .select("*")
-      .eq("token", code.trim())
+      .eq("token", token)
       .is("used_by", null)
       .maybeSingle();
 
@@ -42,7 +74,8 @@ export default function EnterInvite() {
     });
 
     if (linkErr && !linkErr.message.includes("duplicate")) {
-      toast.error("Erro ao aceitar convite.");
+      toast.error("Erro ao aceitar convite. Tente novamente.");
+      console.error("Link error:", linkErr);
       setLoading(false);
       return;
     }
@@ -53,7 +86,7 @@ export default function EnterInvite() {
       .update({ used_by: user.id, used_at: new Date().toISOString() })
       .eq("id", invite.id);
 
-    toast.success("Convite aceito! Redirecionando...");
+    toast.success("Convite aceito com sucesso!");
     setTimeout(() => {
       window.location.href = "/student";
     }, 1200);
@@ -76,16 +109,15 @@ export default function EnterInvite() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               disabled={loading}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
             <Button
               className="w-full"
               onClick={handleSubmit}
               disabled={loading || !code.trim()}
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Validar Convite
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {loading ? "Validando..." : "Validar Convite"}
             </Button>
           </CardContent>
         </Card>
@@ -93,7 +125,7 @@ export default function EnterInvite() {
           variant="ghost"
           size="sm"
           className="w-full text-muted-foreground"
-          onClick={signOut}
+          onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4 mr-1" /> Sair
         </Button>
