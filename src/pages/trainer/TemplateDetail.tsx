@@ -9,6 +9,7 @@ import { Plus, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ExerciseCombobox } from "@/components/trainer/ExerciseCombobox";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface ExerciseWithSets extends Tables<"template_exercises"> {
@@ -40,11 +41,21 @@ export default function TemplateDetail() {
     }
   };
 
-  const addExercise = async () => {
-    if (!newExercise.trim() || !id) return;
-    const { error } = await supabase.from("template_exercises").insert({ template_id: id, name: newExercise.trim(), sort_order: exercises.length });
+  const addExercise = async (name?: string) => {
+    const exerciseName = (name || newExercise).trim();
+    if (!exerciseName || !id || !user) return;
+
+    const { error } = await supabase.from("template_exercises").insert({ template_id: id, name: exerciseName, sort_order: exercises.length });
     if (error) { toast.error("Erro ao adicionar exercício."); return; }
-    setNewExercise(""); load();
+
+    // Save to trainer's exercise library (upsert to avoid duplicates)
+    await supabase.from("exercise_library").upsert(
+      { trainer_id: user.id, name: exerciseName },
+      { onConflict: "trainer_id,name" }
+    );
+
+    setNewExercise("");
+    load();
   };
 
   const deleteExercise = async (exId: string) => {
@@ -94,11 +105,7 @@ export default function TemplateDetail() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-foreground">{ex.name}</p>
                   <ConfirmDialog
-                    trigger={
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    }
+                    trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>}
                     title="Excluir exercício"
                     description="Tem certeza que deseja excluir este exercício e todas as suas séries?"
                     confirmLabel="Excluir"
@@ -114,16 +121,10 @@ export default function TemplateDetail() {
                     {ex.sets.map((s) => (
                       <div key={s.id} className="grid grid-cols-[1.5rem_1fr_1fr_1.75rem] gap-2 items-center">
                         <span className="text-xs text-muted-foreground text-center">{s.set_number}</span>
-                        <Input type="number" defaultValue={s.planned_reps} className="h-9 text-sm"
-                          onBlur={(e) => updateSet(s.id, "planned_reps", Number(e.target.value))} />
-                        <Input type="number" defaultValue={s.planned_weight} className="h-9 text-sm"
-                          onBlur={(e) => updateSet(s.id, "planned_weight", Number(e.target.value))} />
+                        <Input type="number" defaultValue={s.planned_reps} className="h-9 text-sm" onBlur={(e) => updateSet(s.id, "planned_reps", Number(e.target.value))} />
+                        <Input type="number" defaultValue={s.planned_weight} className="h-9 text-sm" onBlur={(e) => updateSet(s.id, "planned_weight", Number(e.target.value))} />
                         <ConfirmDialog
-                          trigger={
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          }
+                          trigger={<Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></Button>}
                           title="Excluir série"
                           description="Tem certeza que deseja excluir esta série?"
                           confirmLabel="Excluir"
@@ -136,8 +137,7 @@ export default function TemplateDetail() {
 
                 {ex.sets.length === 0 && <p className="text-xs text-muted-foreground/60">Nenhuma série definida.</p>}
 
-                <Button size="sm" variant="outline" className="w-full text-xs"
-                  onClick={() => addSet(ex.id, ex.sets.length)}>
+                <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => addSet(ex.id, ex.sets.length)}>
                   <Plus className="h-3 w-3 mr-1" /> Adicionar série
                 </Button>
               </div>
@@ -146,10 +146,12 @@ export default function TemplateDetail() {
         )}
 
         <div className="space-y-2 pb-4">
-          <Input placeholder="Nome do exercício" value={newExercise} onChange={(e) => setNewExercise(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addExercise()}
-            className="h-10" />
-          <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={addExercise} disabled={!newExercise.trim()}>
+          <ExerciseCombobox
+            value={newExercise}
+            onChange={setNewExercise}
+            onSelect={(name) => addExercise(name)}
+          />
+          <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => addExercise()} disabled={!newExercise.trim()}>
             <Plus className="h-4 w-4 mr-1.5" /> Adicionar exercício
           </Button>
         </div>

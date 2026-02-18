@@ -8,6 +8,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PersonalBests } from "@/components/student/PersonalBests";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -74,14 +75,16 @@ export default function StudentDashboard() {
                   <p className="text-sm font-medium text-foreground">{t.name}</p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                 </div>
-                <Button size="sm" onClick={() => navigate(`/student/session/${t.id}`)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button size="sm" onClick={() => navigate(`/student/session/${t.id}`)} className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Play className="h-4 w-4 mr-1" /> Iniciar
                 </Button>
               </div>
             ))}
           </div>
         )}
+
+        {/* Personal Bests */}
+        {user && <PersonalBests userId={user.id} />}
 
         {recentSessions.length > 0 && (
           <div className="space-y-3">

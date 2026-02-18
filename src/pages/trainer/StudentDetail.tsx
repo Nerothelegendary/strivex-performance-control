@@ -11,6 +11,8 @@ import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PlannedVsActual } from "@/components/trainer/PlannedVsActual";
+import { VolumeChart } from "@/components/trainer/VolumeChart";
 import type { Tables } from "@/integrations/supabase/types";
 
 export default function StudentDetail() {
@@ -88,6 +90,7 @@ export default function StudentDetail() {
         <Tabs defaultValue="history">
           <TabsList className="bg-secondary border border-border">
             <TabsTrigger value="history" className="data-[state=active]:bg-card data-[state=active]:text-foreground text-muted-foreground">Histórico</TabsTrigger>
+            <TabsTrigger value="progress" className="data-[state=active]:bg-card data-[state=active]:text-foreground text-muted-foreground">Progresso</TabsTrigger>
             <TabsTrigger value="templates" className="data-[state=active]:bg-card data-[state=active]:text-foreground text-muted-foreground">Treinos</TabsTrigger>
             <TabsTrigger value="notes" className="data-[state=active]:bg-card data-[state=active]:text-foreground text-muted-foreground">Notas</TabsTrigger>
           </TabsList>
@@ -110,19 +113,17 @@ export default function StudentDetail() {
                   </div>
                   {s.notes && <p className="text-xs text-muted-foreground/60 mt-2 italic">"{s.notes}"</p>}
                   {selectedSession === s.id && sessionSets.length > 0 && (
-                    <div className="mt-3 border-t border-border pt-3 space-y-1">
-                      {sessionSets.map((ss) => (
-                        <div key={ss.id} className="grid grid-cols-[1fr_auto_auto] gap-4 text-xs">
-                          <span className="text-foreground/70">{ss.exercise_name}</span>
-                          <span className="text-muted-foreground">{ss.reps} reps</span>
-                          <span className="text-muted-foreground">{ss.weight} kg</span>
-                        </div>
-                      ))}
+                    <div className="mt-3 border-t border-border pt-3">
+                      <PlannedVsActual session={s} sessionSets={sessionSets} />
                     </div>
                   )}
                 </div>
               ))
             )}
+          </TabsContent>
+
+          <TabsContent value="progress" className="mt-4">
+            {studentId && <VolumeChart studentId={studentId} />}
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-3 mt-4">
