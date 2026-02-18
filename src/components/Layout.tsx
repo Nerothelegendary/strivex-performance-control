@@ -1,11 +1,28 @@
 import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Dumbbell } from "lucide-react";
+import { LogOut, Dumbbell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Navigate } from "react-router-dom";
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { profile, role, signOut } = useAuth();
+  const { user, profile, role, loading, signOut } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!role) {
+    return <Navigate to="/select-role" replace />;
+  }
 
   const roleLabel = role === "trainer" ? "Treinador" : "Aluno";
   const initials = profile?.full_name
