@@ -34,38 +34,34 @@ export default function Login() {
   return (
     <PageTransition>
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6"
-         style={{ background: 'radial-gradient(ellipse at center 40%, hsl(224 76% 12%) 0%, hsl(222 47% 8%) 60%, hsl(222 50% 5%) 100%)' }}>
-      {/* Radial glow – stronger */}
+         style={{ background: 'var(--glow-bg)' }}>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] h-[550px] w-[550px] rounded-full opacity-40 blur-[100px]"
-           style={{ background: 'radial-gradient(circle, hsl(224 76% 33%), transparent 65%)' }} />
-      {/* Vignette edges */}
+           style={{ background: 'var(--glow-orb)' }} />
       <div className="absolute inset-0 pointer-events-none"
-           style={{ background: 'radial-gradient(ellipse at center, transparent 50%, hsl(222 50% 4% / 0.7) 100%)' }} />
+           style={{ background: 'radial-gradient(ellipse at center, transparent 50%, hsl(var(--background) / 0.7) 100%)' }} />
 
       <div className="relative z-10 w-full max-w-sm space-y-9">
-        {/* Brand */}
         <div className="flex flex-col items-center space-y-4">
           <div className="relative flex h-28 w-28 items-center justify-center rounded-full"
-               style={{ background: 'radial-gradient(circle at 40% 40%, hsl(217 91% 60%), hsl(224 76% 33%))' }}>
+               style={{ background: 'var(--icon-orb)' }}>
             <div className="absolute -inset-3 rounded-full blur-2xl opacity-50"
-                 style={{ background: 'radial-gradient(circle, hsl(217 91% 60%), transparent 70%)' }} />
-            <Dumbbell className="relative h-12 w-12 text-white drop-shadow-lg" />
+                 style={{ background: 'var(--glow-orb)' }} />
+            <Dumbbell className="relative h-12 w-12 text-primary-foreground drop-shadow-lg" />
           </div>
           <div className="space-y-1.5 text-center">
-            <h1 className="text-[2.75rem] font-extrabold tracking-[0.2em] text-white uppercase leading-none">
+            <h1 className="text-[2.75rem] font-extrabold tracking-[0.2em] text-foreground uppercase leading-none">
               STRIVEX
             </h1>
-            <p className="text-[13px] font-medium tracking-wide" style={{ color: 'hsl(215 20% 55%)' }}>
+            <p className="text-[13px] font-medium tracking-wide text-muted-foreground">
               Plataforma de Performance para Treinadores
             </p>
           </div>
         </div>
 
-        {/* Google button */}
         <Button
           onClick={handleGoogleLogin}
           variant="outline"
-          className="w-full h-[56px] text-base font-semibold gap-3 rounded-2xl border-0 bg-white text-foreground shadow-xl shadow-black/30 hover:shadow-2xl hover:brightness-105 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 ease-out"
+          className="w-full h-[56px] text-base font-semibold gap-3 rounded-2xl border-0 bg-white text-gray-900 shadow-xl shadow-black/30 hover:shadow-2xl hover:brightness-105 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 ease-out"
         >
           <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -76,8 +72,7 @@ export default function Login() {
           Entrar com Google
         </Button>
 
-        {/* Microcopy */}
-        <p className="text-[11px] text-center" style={{ color: 'hsl(215 16% 40% / 0.5)' }}>
+        <p className="text-[11px] text-center text-muted-foreground/50">
           Ao continuar, você concorda com nossos termos de uso.
         </p>
       </div>

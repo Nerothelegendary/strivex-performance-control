@@ -84,44 +84,44 @@ export default function WorkoutSession() {
     navigate("/");
   };
 
-  if (loading) return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div></Layout>;
+  if (loading) return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></Layout>;
   if (!template) return null;
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h2 className="text-xl font-semibold text-white">{template.name}</h2>
-            <p className="text-sm text-white/40">Registre sua execução</p>
+            <h2 className="text-xl font-semibold text-foreground">{template.name}</h2>
+            <p className="text-sm text-muted-foreground">Registre sua execução</p>
           </div>
         </div>
 
         {exercises.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-8 text-center">
-            <p className="text-sm text-white/40">Nenhum exercício definido neste treino.</p>
+          <div className="rounded-xl border border-dashed border-border bg-card/20 py-8 text-center">
+            <p className="text-sm text-muted-foreground">Nenhum exercício definido neste treino.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {exercises.map((ex, exIdx) => (
-              <div key={ex.id} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-sm font-semibold text-white mb-3">{ex.name}</p>
+              <div key={ex.id} className="rounded-xl border border-border bg-card/40 p-4">
+                <p className="text-sm font-semibold text-foreground mb-3">{ex.name}</p>
                 {ex.sets.length === 0 ? (
-                  <p className="text-xs text-white/30">Nenhuma série.</p>
+                  <p className="text-xs text-muted-foreground/60">Nenhuma série.</p>
                 ) : (
                   <div className="space-y-2">
-                    <div className="grid grid-cols-[2rem_1fr_1fr] gap-2 text-xs text-white/30">
+                    <div className="grid grid-cols-[2rem_1fr_1fr] gap-2 text-xs text-muted-foreground">
                       <span>#</span><span>Reps</span><span>Peso (kg)</span>
                     </div>
                     {ex.sets.map((s, setIdx) => (
                       <div key={setIdx} className="grid grid-cols-[2rem_1fr_1fr] gap-2 items-center">
-                        <span className="text-xs text-white/30">{s.set_number}</span>
-                        <Input type="number" value={s.actual_reps} className="h-8 text-sm border-white/10 bg-white/5 text-white"
+                        <span className="text-xs text-muted-foreground">{s.set_number}</span>
+                        <Input type="number" value={s.actual_reps} className="h-8 text-sm"
                           onChange={(e) => updateSet(exIdx, setIdx, "actual_reps", Number(e.target.value))} />
-                        <Input type="number" value={s.actual_weight} className="h-8 text-sm border-white/10 bg-white/5 text-white"
+                        <Input type="number" value={s.actual_weight} className="h-8 text-sm"
                           onChange={(e) => updateSet(exIdx, setIdx, "actual_weight", Number(e.target.value))} />
                       </div>
                     ))}
@@ -130,11 +130,9 @@ export default function WorkoutSession() {
               </div>
             ))}
 
-            <Textarea placeholder="Observações sobre o treino (opcional)" value={sessionNote} onChange={(e) => setSessionNote(e.target.value)} rows={3}
-              className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+            <Textarea placeholder="Observações sobre o treino (opcional)" value={sessionNote} onChange={(e) => setSessionNote(e.target.value)} rows={3} />
 
-            <Button onClick={saveSession} disabled={saving} className="w-full h-12 text-base font-semibold"
-              style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }}>
+            <Button onClick={saveSession} disabled={saving} className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar Treino
             </Button>

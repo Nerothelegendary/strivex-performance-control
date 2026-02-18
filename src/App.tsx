@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import SelectRole from "./pages/SelectRole";
@@ -18,7 +20,14 @@ import EnterInvite from "./pages/student/EnterInvite";
 import WorkoutSession from "./pages/student/WorkoutSession";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -29,13 +38,18 @@ function AnimatedRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/select-role" element={<SelectRole />} />
         <Route path="/invite" element={<AcceptInvite />} />
-        <Route path="/trainer" element={<TrainerDashboard />} />
-        <Route path="/trainer/templates" element={<WorkoutTemplates />} />
-        <Route path="/trainer/template/:id" element={<TemplateDetail />} />
-        <Route path="/trainer/student/:studentId" element={<StudentDetail />} />
-        <Route path="/student" element={<StudentDashboard />} />
-        <Route path="/student/invite" element={<EnterInvite />} />
-        <Route path="/student/session/:templateId" element={<WorkoutSession />} />
+
+        {/* Trainer routes */}
+        <Route path="/trainer" element={<ProtectedRoute allowedRole="trainer"><TrainerDashboard /></ProtectedRoute>} />
+        <Route path="/trainer/templates" element={<ProtectedRoute allowedRole="trainer"><WorkoutTemplates /></ProtectedRoute>} />
+        <Route path="/trainer/template/:id" element={<ProtectedRoute allowedRole="trainer"><TemplateDetail /></ProtectedRoute>} />
+        <Route path="/trainer/student/:studentId" element={<ProtectedRoute allowedRole="trainer"><StudentDetail /></ProtectedRoute>} />
+
+        {/* Student routes */}
+        <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
+        <Route path="/student/invite" element={<ProtectedRoute allowedRole="student"><EnterInvite /></ProtectedRoute>} />
+        <Route path="/student/session/:templateId" element={<ProtectedRoute allowedRole="student"><WorkoutSession /></ProtectedRoute>} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
@@ -49,7 +63,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AnimatedRoutes />
+          <ErrorBoundary>
+            <AnimatedRoutes />
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
