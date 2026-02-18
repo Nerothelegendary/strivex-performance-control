@@ -1,6 +1,5 @@
 import { Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -32,22 +31,33 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <Dumbbell className="h-8 w-8 text-primary" />
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute top-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full bg-primary/[0.03] blur-3xl" />
+      <div className="absolute bottom-[-20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-accent/[0.04] blur-3xl" />
+
+      <div className="relative z-10 w-full max-w-sm space-y-10">
+        {/* Brand */}
+        <div className="flex flex-col items-center space-y-4">
+          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary shadow-lg shadow-primary/20">
+            <Dumbbell className="h-10 w-10 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Strivex</h1>
-          <p className="text-sm text-muted-foreground text-center">Sistema de Controle de Performance</p>
+          <div className="space-y-1.5 text-center">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Strivex</h1>
+            <p className="text-sm font-medium text-muted-foreground">
+              Plataforma de Performance para Treinadores
+            </p>
+          </div>
         </div>
 
+        {/* Google button */}
         <Button
           onClick={handleGoogleLogin}
           variant="outline"
-          className="w-full h-14 text-base gap-3 rounded-xl border-2"
+          className="w-full h-[56px] text-base font-medium gap-3 rounded-2xl border border-border bg-card shadow-sm hover:shadow-md hover:border-primary/30 active:scale-[0.98] transition-all duration-200"
         >
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -56,7 +66,8 @@ export default function Login() {
           Entrar com Google
         </Button>
 
-        <p className="text-xs text-center text-muted-foreground">
+        {/* Microcopy */}
+        <p className="text-[11px] text-center text-muted-foreground/70">
           Ao continuar, você concorda com nossos termos de uso.
         </p>
       </div>
