@@ -11,6 +11,8 @@ import { MetricCard } from "@/components/trainer/MetricCard";
 import { StudentCard } from "@/components/trainer/StudentCard";
 import { StudentCardSkeleton } from "@/components/trainer/StudentCardSkeleton";
 import { getStatusInfo } from "@/components/trainer/StatusBadge";
+import { InactivityAlerts } from "@/components/trainer/InactivityAlerts";
+import { ActivityFeed } from "@/components/trainer/ActivityFeed";
 
 interface StudentData {
   student_id: string;
@@ -38,19 +40,11 @@ export default function TrainerDashboard() {
 
   const loadStudents = async () => {
     if (!user) return;
-    const { data: links } = await supabase
-      .from("trainer_students")
-      .select("student_id")
-      .eq("trainer_id", user.id);
+    const { data: links } = await supabase.from("trainer_students").select("student_id").eq("trainer_id", user.id);
 
-    if (!links || links.length === 0) {
-      setStudents([]);
-      setLoading(false);
-      return;
-    }
+    if (!links || links.length === 0) { setStudents([]); setLoading(false); return; }
 
     const studentIds = links.map((l) => l.student_id);
-
     const [profilesRes, sessionsRes, templatesRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", studentIds),
       supabase.from("workout_sessions").select("student_id, executed_at").in("student_id", studentIds).order("executed_at", { ascending: false }),
@@ -62,22 +56,17 @@ export default function TrainerDashboard() {
     const templates = templatesRes.data;
 
     const lastSessionMap = new Map<string, string>();
-    sessions?.forEach((s) => {
-      if (!lastSessionMap.has(s.student_id)) lastSessionMap.set(s.student_id, s.executed_at);
-    });
+    sessions?.forEach((s) => { if (!lastSessionMap.has(s.student_id)) lastSessionMap.set(s.student_id, s.executed_at); });
 
     const templateCountMap = new Map<string, number>();
-    templates?.forEach((t) => {
-      templateCountMap.set(t.student_id, (templateCountMap.get(t.student_id) ?? 0) + 1);
-    });
+    templates?.forEach((t) => { templateCountMap.set(t.student_id, (templateCountMap.get(t.student_id) ?? 0) + 1); });
 
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const completed = sessions?.filter((s) => new Date(s.executed_at) >= weekAgo).length ?? 0;
-    setWeeklyCompleted(completed);
+    setWeeklyCompleted(sessions?.filter((s) => new Date(s.executed_at) >= weekAgo).length ?? 0);
     setTotalAssigned(templates?.length ?? 0);
 
-    const result: StudentData[] = studentIds.map((sid) => {
+    setStudents(studentIds.map((sid) => {
       const p = profiles?.find((p) => p.user_id === sid);
       return {
         student_id: sid,
@@ -86,9 +75,7 @@ export default function TrainerDashboard() {
         last_session_at: lastSessionMap.get(sid) ?? null,
         assigned_templates: templateCountMap.get(sid) ?? 0,
       };
-    });
-
-    setStudents(result);
+    }));
     setLoading(false);
   };
 
@@ -96,26 +83,15 @@ export default function TrainerDashboard() {
     const matchesSearch = !searchQuery || (s.full_name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
     if (!statusFilter) return true;
-    const status = getStatusInfo(s.last_session_at, s.assigned_templates);
-    return status.variant === statusFilter;
+    return getStatusInfo(s.last_session_at, s.assigned_templates).variant === statusFilter;
   });
 
   const generateInvite = async () => {
     if (!user) return;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const { data, error } = await supabase
-      .from("invitations")
-      .insert({ trainer_id: user.id, expires_at: expiresAt.toISOString() })
-      .select("token")
-      .single();
-
-    if (error) {
-      toast.error("Erro ao gerar convite.");
-      return;
-    }
-
+    const { data, error } = await supabase.from("invitations").insert({ trainer_id: user.id, expires_at: expiresAt.toISOString() }).select("token").single();
+    if (error) { toast.error("Erro ao gerar convite."); return; }
     const link = `${window.location.origin}/invite?token=${data.token}`;
     setInviteLink(link);
     navigator.clipboard.writeText(link);
@@ -132,7 +108,6 @@ export default function TrainerDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="space-y-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-foreground">Painel do Treinador</h1>
@@ -148,13 +123,11 @@ export default function TrainerDashboard() {
           </div>
         </div>
 
-        {/* Invite Link Banner */}
         {inviteLink && (
           <div className="rounded-xl border border-border bg-secondary p-3 flex items-center justify-between gap-2">
             <code className="text-xs truncate flex-1 text-muted-foreground">{inviteLink}</code>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost"
-                onClick={() => { navigator.clipboard.writeText(inviteLink); toast.success("Copiado!"); setTimeout(() => setInviteLink(null), 1500); }}>
+              <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(inviteLink); toast.success("Copiado!"); setTimeout(() => setInviteLink(null), 1500); }}>
                 <Copy className="h-4 w-4" />
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)}>✕</Button>
@@ -162,14 +135,18 @@ export default function TrainerDashboard() {
           </div>
         )}
 
-        {/* Summary Metrics */}
         <div className="grid grid-cols-3 gap-2">
           <MetricCard icon={Users} value={students.length} label="Alunos ativos" loading={loading} />
           <MetricCard icon={ClipboardList} value={totalAssigned} label="Treinos atribuídos" loading={loading} />
           <MetricCard icon={CheckCircle2} value={weeklyCompleted} label="Concluídos na semana" loading={loading} />
         </div>
 
-        {/* Student List */}
+        {/* Inactivity Alerts */}
+        {!loading && <InactivityAlerts students={students} onStudentClick={(id) => navigate(`/trainer/student/${id}`)} />}
+
+        {/* Activity Feed */}
+        <ActivityFeed />
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Alunos</h2>
@@ -178,40 +155,26 @@ export default function TrainerDashboard() {
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar aluno..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+            <Input placeholder="Buscar aluno..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
           </div>
 
           <div className="flex gap-2 flex-wrap">
             {statusFilters.map((f) => (
-              <button
-                key={f.label}
-                onClick={() => setStatusFilter(f.key)}
+              <button key={f.label} onClick={() => setStatusFilter(f.key)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   statusFilter === f.key
-                    ? f.key === "success"
-                      ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
-                      : f.key === "warning"
-                      ? "bg-yellow-400/20 text-yellow-300 border-yellow-400/30"
-                      : f.key === "danger"
-                      ? "bg-red-400/20 text-red-300 border-red-400/30"
+                    ? f.key === "success" ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
+                      : f.key === "warning" ? "bg-yellow-400/20 text-yellow-300 border-yellow-400/30"
+                      : f.key === "danger" ? "bg-red-400/20 text-red-300 border-red-400/30"
                       : "bg-secondary text-foreground border-border"
                     : "bg-card/40 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
                 }`}
-              >
-                {f.label}
-              </button>
+              >{f.label}</button>
             ))}
           </div>
 
           {loading ? (
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              {[1, 2, 3, 4].map((i) => <StudentCardSkeleton key={i} />)}
-            </div>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <StudentCardSkeleton key={i} />)}</div>
           ) : students.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-card/20 py-12 text-center">
               <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
@@ -221,13 +184,7 @@ export default function TrainerDashboard() {
           ) : (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               {filteredStudents.map((s) => (
-                <StudentCard
-                  key={s.student_id}
-                  studentId={s.student_id}
-                  fullName={s.full_name}
-                  lastSessionAt={s.last_session_at}
-                  assignedTemplates={s.assigned_templates}
-                />
+                <StudentCard key={s.student_id} studentId={s.student_id} fullName={s.full_name} lastSessionAt={s.last_session_at} assignedTemplates={s.assigned_templates} />
               ))}
             </div>
           )}

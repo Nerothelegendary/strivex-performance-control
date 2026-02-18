@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_feed: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          student_id: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          student_id: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          student_id?: string
+          trainer_id?: string
+        }
+        Relationships: []
+      }
+      exercise_library: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string

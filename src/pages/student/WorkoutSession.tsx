@@ -80,6 +80,59 @@ export default function WorkoutSession() {
       if (setsErr) { toast.error("Erro ao salvar séries."); setSaving(false); return; }
     }
 
+    // Post activity feed entry for the trainer
+    try {
+      const { data: trainerId } = await supabase.rpc("get_trainer_id", { _student_user_id: user.id });
+      if (trainerId) {
+        const studentName = user.user_metadata?.full_name || user.user_metadata?.name || "Aluno";
+
+        // Check for personal bests
+        const { data: previousSets } = await supabase
+          .from("session_sets")
+          .select("exercise_name, weight")
+          .neq("session_id", session.id)
+          .in("session_id",
+            (await supabase.from("workout_sessions").select("id").eq("student_id", user.id)).data?.map((s) => s.id) ?? []
+          );
+
+        const previousMaxes = new Map<string, number>();
+        previousSets?.forEach((s) => {
+          const current = previousMaxes.get(s.exercise_name) ?? 0;
+          if (Number(s.weight) > current) previousMaxes.set(s.exercise_name, Number(s.weight));
+        });
+
+        // Check for new PRs
+        const newPRs: string[] = [];
+        allSets.forEach((s) => {
+          const prevMax = previousMaxes.get(s.exercise_name) ?? 0;
+          if (s.weight > prevMax && s.weight > 0) {
+            if (!newPRs.includes(s.exercise_name)) newPRs.push(s.exercise_name);
+          }
+        });
+
+        // Insert workout completed feed entry
+        await supabase.from("activity_feed").insert({
+          trainer_id: trainerId,
+          student_id: user.id,
+          event_type: "workout_completed",
+          message: `${studentName} completou o treino "${template.name}" (${totalVolume.toLocaleString()} kg vol.)`,
+        });
+
+        // Insert PR feed entries
+        for (const exerciseName of newPRs) {
+          const prWeight = Math.max(...allSets.filter((s) => s.exercise_name === exerciseName).map((s) => s.weight));
+          await supabase.from("activity_feed").insert({
+            trainer_id: trainerId,
+            student_id: user.id,
+            event_type: "personal_best",
+            message: `🏆 ${studentName} bateu recorde em ${exerciseName}: ${prWeight} kg!`,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to post activity feed:", e);
+    }
+
     toast.success("Treino salvo com sucesso!");
     navigate("/");
   };
