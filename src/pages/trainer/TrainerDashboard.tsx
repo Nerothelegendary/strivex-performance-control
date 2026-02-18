@@ -161,16 +161,22 @@ export default function TrainerDashboard() {
           <Card className="bg-secondary border-dashed">
             <CardContent className="py-3 flex items-center justify-between gap-2">
               <code className="text-xs truncate flex-1 text-muted-foreground">{inviteLink}</code>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  navigator.clipboard.writeText(inviteLink);
-                  toast.success("Copiado!");
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteLink);
+                    toast.success("Copiado!");
+                    setTimeout(() => setInviteLink(null), 1500);
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)}>
+                  ✕
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
