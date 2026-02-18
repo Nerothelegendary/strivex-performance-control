@@ -13,6 +13,7 @@ import WorkoutTemplates from "./pages/trainer/WorkoutTemplates";
 import TemplateDetail from "./pages/trainer/TemplateDetail";
 import StudentDetail from "./pages/trainer/StudentDetail";
 import StudentDashboard from "./pages/student/StudentDashboard";
+import EnterInvite from "./pages/student/EnterInvite";
 import WorkoutSession from "./pages/student/WorkoutSession";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/trainer/template/:id" element={<TemplateDetail />} />
             <Route path="/trainer/student/:studentId" element={<StudentDetail />} />
             <Route path="/student" element={<StudentDashboard />} />
+            <Route path="/student/invite" element={<EnterInvite />} />
             <Route path="/student/session/:templateId" element={<WorkoutSession />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

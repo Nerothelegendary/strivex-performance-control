@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dumbbell, Play } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Dumbbell, Play, ClipboardList, Loader2 } from "lucide-react";
+import { useNavigate, Navigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,6 +16,7 @@ export default function StudentDashboard() {
   const [templates, setTemplates] = useState<Tables<"workout_templates">[]>([]);
   const [recentSessions, setRecentSessions] = useState<Tables<"workout_sessions">[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasTrainer, setHasTrainer] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (user) load();
@@ -23,6 +24,21 @@ export default function StudentDashboard() {
 
   const load = async () => {
     if (!user) return;
+
+    // Check if student is linked to a trainer
+    const { data: trainerLink } = await supabase
+      .from("trainer_students")
+      .select("id")
+      .eq("student_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!trainerLink) {
+      setHasTrainer(false);
+      setLoading(false);
+      return;
+    }
+    setHasTrainer(true);
 
     const { data: assigned } = await supabase
       .from("student_templates")
@@ -47,6 +63,21 @@ export default function StudentDashboard() {
     setLoading(false);
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Student not linked to any trainer — redirect to invitation page
+  if (hasTrainer === false) {
+    return <Navigate to="/student/invite" replace />;
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -55,14 +86,18 @@ export default function StudentDashboard() {
           <p className="text-sm text-muted-foreground">Escolha um treino para iniciar</p>
         </div>
 
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        ) : templates.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Dumbbell className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhum treino atribuído ainda.</p>
-              <p className="text-xs text-muted-foreground mt-1">Aguarde seu treinador atribuir treinos.</p>
+        {templates.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-16 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                <ClipboardList className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <p className="text-base font-medium text-foreground">
+                Seu treinador ainda não enviou seu treino.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1.5">
+                Assim que ele criar sua rotina, ela aparecerá aqui.
+              </p>
             </CardContent>
           </Card>
         ) : (
