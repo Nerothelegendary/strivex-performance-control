@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { PageTransition } from "@/components/PageTransition";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Dumbbell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="container py-5 px-4">{children}</main>
+      <main className="container py-5 px-4"><PageTransition>{children}</PageTransition></main>
     </div>
   );
 }

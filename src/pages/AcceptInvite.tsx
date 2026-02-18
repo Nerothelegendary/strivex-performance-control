@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dumbbell, Loader2 } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
 import { toast } from "sonner";
 
 export default function AcceptInvite() {
@@ -30,6 +31,7 @@ export default function AcceptInvite() {
   }, [user, token, role, navigate]);
 
   return (
+    <PageTransition>
     <div className="flex min-h-screen items-center justify-center"
          style={{ background: 'radial-gradient(ellipse at center 40%, hsl(224 76% 12%) 0%, hsl(222 47% 8%) 60%, hsl(222 50% 5%) 100%)' }}>
       <div className="text-center space-y-3">
@@ -47,5 +49,6 @@ export default function AcceptInvite() {
         {status === "error" && <p className="text-sm text-red-400">Convite inválido ou expirado.</p>}
       </div>
     </div>
+    </PageTransition>
   );
 }

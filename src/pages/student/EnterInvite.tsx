@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageTransition } from "@/components/PageTransition";
 import { Loader2, TicketCheck, LogOut, Dumbbell } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, Navigate } from "react-router-dom";
@@ -56,6 +57,7 @@ export default function EnterInvite() {
   };
 
   return (
+    <PageTransition>
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6"
          style={{ background: 'radial-gradient(ellipse at center 40%, hsl(224 76% 12%) 0%, hsl(222 47% 8%) 60%, hsl(222 50% 5%) 100%)' }}>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] h-[400px] w-[400px] rounded-full opacity-25 blur-[100px]"
@@ -89,5 +91,6 @@ export default function EnterInvite() {
         </Button>
       </div>
     </div>
+    </PageTransition>
   );
 }

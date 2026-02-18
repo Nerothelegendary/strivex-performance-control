@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dumbbell, GraduationCap, UserCog, Loader2 } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
@@ -41,6 +42,7 @@ export default function SelectRole() {
   };
 
   return (
+    <PageTransition>
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6"
          style={{ background: 'radial-gradient(ellipse at center 40%, hsl(224 76% 12%) 0%, hsl(222 47% 8%) 60%, hsl(222 50% 5%) 100%)' }}>
       {/* Radial glow */}
@@ -110,5 +112,6 @@ export default function SelectRole() {
         )}
       </div>
     </div>
+    </PageTransition>
   );
 }
