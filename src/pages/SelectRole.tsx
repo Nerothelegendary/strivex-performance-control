@@ -2,13 +2,24 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dumbbell, GraduationCap, UserCog } from "lucide-react";
+import { Dumbbell, GraduationCap, UserCog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
 
 export default function SelectRole() {
-  const { user } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (role) return <Navigate to={role === "trainer" ? "/trainer" : "/student"} replace />;
 
   const selectRole = async (role: "trainer" | "student") => {
     if (!user) return;

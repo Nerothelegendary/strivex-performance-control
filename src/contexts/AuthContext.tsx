@@ -25,6 +25,17 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+async function fetchUserData(userId: string) {
+  const [roleRes, profileRes] = await Promise.all([
+    supabase.from("user_roles").select("role").eq("user_id", userId).limit(1).maybeSingle(),
+    supabase.from("profiles").select("full_name, avatar_url").eq("user_id", userId).maybeSingle(),
+  ]);
+  return {
+    role: roleRes.data?.role ?? null,
+    profile: profileRes.data ?? null,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -32,42 +43,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserData = async (userId: string) => {
-    const [roleRes, profileRes] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", userId).limit(1).maybeSingle(),
-      supabase.from("profiles").select("full_name, avatar_url").eq("user_id", userId).maybeSingle(),
-    ]);
-    setRole(roleRes.data?.role ?? null);
-    setProfile(profileRes.data ?? null);
-  };
-
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setTimeout(() => fetchUserData(session.user.id), 0);
-      } else {
-        setRole(null);
-        setProfile(null);
-      }
-      setLoading(false);
-    });
+    let isMounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setLoading(false);
-    });
+    // Listener for ONGOING auth changes (does NOT control loading)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!isMounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
 
-    return () => subscription.unsubscribe();
+        if (session?.user) {
+          // Dispatch after callback to avoid deadlock
+          setTimeout(async () => {
+            if (!isMounted) return;
+            const data = await fetchUserData(session.user.id);
+            if (isMounted) {
+              setRole(data.role);
+              setProfile(data.profile);
+            }
+          }, 0);
+        } else {
+          setRole(null);
+          setProfile(null);
+        }
+      }
+    );
+
+    // INITIAL load (controls loading state)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const data = await fetchUserData(session.user.id);
+          if (isMounted) {
+            setRole(data.role);
+            setProfile(data.profile);
+          }
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setRole(null);
+    setProfile(null);
   };
 
   return (
