@@ -15,7 +15,13 @@ export default function SelectRole() {
     setLoading(true);
     const { error } = await supabase.from("user_roles").insert({ user_id: user.id, role });
     if (error) {
+      // If duplicate key, role already exists — just reload
+      if (error.code === "23505") {
+        window.location.reload();
+        return;
+      }
       toast.error("Erro ao definir perfil. Tente novamente.");
+      console.error("Insert role error:", error);
       setLoading(false);
       return;
     }
