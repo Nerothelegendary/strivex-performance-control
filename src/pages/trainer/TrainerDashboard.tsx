@@ -25,6 +25,7 @@ export default function TrainerDashboard() {
   const [loading, setLoading] = useState(true);
   const [weeklyCompleted, setWeeklyCompleted] = useState(0);
   const [totalAssigned, setTotalAssigned] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -95,6 +96,12 @@ export default function TrainerDashboard() {
     if (days <= 6) return { label: "Atenção", variant: "warning" as const };
     return { label: "Inativo", variant: "danger" as const };
   };
+
+  const filteredStudents = students.filter((s) => {
+    if (!statusFilter) return true;
+    const status = getStatusInfo(s.last_session_at, s.assigned_templates);
+    return status.variant === statusFilter;
+  });
 
   const generateInvite = async () => {
     if (!user) return;
@@ -172,7 +179,34 @@ export default function TrainerDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">Alunos</h2>
-            <p className="text-xs text-white/40">{students.length} aluno(s)</p>
+            <p className="text-xs text-white/40">{filteredStudents.length} aluno(s)</p>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { key: null, label: "Todos" },
+              { key: "success", label: "Em dia" },
+              { key: "warning", label: "Atenção" },
+              { key: "danger", label: "Inativo" },
+            ].map((f) => (
+              <button
+                key={f.label}
+                onClick={() => setStatusFilter(f.key)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  statusFilter === f.key
+                    ? f.key === "success"
+                      ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
+                      : f.key === "warning"
+                      ? "bg-yellow-400/20 text-yellow-300 border-yellow-400/30"
+                      : f.key === "danger"
+                      ? "bg-red-400/20 text-red-300 border-red-400/30"
+                      : "bg-white/15 text-white border-white/20"
+                    : "bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           {loading ? (
@@ -185,7 +219,7 @@ export default function TrainerDashboard() {
             </div>
           ) : (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              {students.map((s) => {
+              {filteredStudents.map((s) => {
                 const status = getStatusInfo(s.last_session_at, s.assigned_templates);
                 return (
                   <div
