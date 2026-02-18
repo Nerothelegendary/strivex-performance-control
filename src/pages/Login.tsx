@@ -4,6 +4,7 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
 
 export default function Login() {
   const { user, role, loading } = useAuth();
@@ -31,6 +32,7 @@ export default function Login() {
   }
 
   return (
+    <PageTransition>
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6"
          style={{ background: 'radial-gradient(ellipse at center 40%, hsl(224 76% 12%) 0%, hsl(222 47% 8%) 60%, hsl(222 50% 5%) 100%)' }}>
       {/* Radial glow – stronger */}
@@ -80,5 +82,6 @@ export default function Login() {
         </p>
       </div>
     </div>
+    </PageTransition>
   );
 }
