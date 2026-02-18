@@ -44,14 +44,14 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container flex h-14 items-center justify-between">
+      <header className="border-b bg-card sticky top-0 z-50">
+        <div className="container flex h-12 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-primary" />
+            <Dumbbell className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold tracking-tight text-foreground">Strivex</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
+          <div className="flex items-center gap-2">
+            <div className="text-right hidden sm:block">
               <p className="text-sm font-medium leading-none text-foreground">Olá, {firstName}</p>
               <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
@@ -65,7 +65,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="container py-6">{children}</main>
+      <main className="container py-4 px-4">{children}</main>
     </div>
   );
 }
