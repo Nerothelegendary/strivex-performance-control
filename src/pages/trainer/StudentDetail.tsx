@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,7 +32,6 @@ export default function StudentDetail() {
 
   const loadAll = async () => {
     if (!user || !studentId) return;
-
     const [profileRes, sessionsRes, noteRes, templatesRes, assignedRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", studentId).single(),
       supabase.from("workout_sessions").select("*").eq("student_id", studentId).order("executed_at", { ascending: false }),
@@ -41,7 +39,6 @@ export default function StudentDetail() {
       supabase.from("workout_templates").select("*").eq("trainer_id", user.id).order("name"),
       supabase.from("student_templates").select("template_id").eq("student_id", studentId),
     ]);
-
     setStudentProfile(profileRes.data);
     setSessions(sessionsRes.data ?? []);
     setExistingNote(noteRes.data);
@@ -72,16 +69,8 @@ export default function StudentDetail() {
   };
 
   const viewSessionSets = async (sessionId: string) => {
-    if (selectedSession === sessionId) {
-      setSelectedSession(null);
-      return;
-    }
-    const { data } = await supabase
-      .from("session_sets")
-      .select("*")
-      .eq("session_id", sessionId)
-      .order("exercise_name")
-      .order("set_number");
+    if (selectedSession === sessionId) { setSelectedSession(null); return; }
+    const { data } = await supabase.from("session_sets").select("*").eq("session_id", sessionId).order("exercise_name").order("set_number");
     setSessionSets(data ?? []);
     setSelectedSession(sessionId);
   };
@@ -90,70 +79,65 @@ export default function StudentDetail() {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/trainer")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h2 className="text-xl font-semibold">{studentProfile?.full_name || "Aluno"}</h2>
-          </div>
+          <h2 className="text-xl font-semibold text-white">{studentProfile?.full_name || "Aluno"}</h2>
         </div>
 
         <Tabs defaultValue="history">
-          <TabsList>
-            <TabsTrigger value="history">Histórico</TabsTrigger>
-            <TabsTrigger value="templates">Treinos</TabsTrigger>
-            <TabsTrigger value="notes">Notas</TabsTrigger>
+          <TabsList className="bg-white/5 border border-white/10">
+            <TabsTrigger value="history" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">Histórico</TabsTrigger>
+            <TabsTrigger value="templates" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">Treinos</TabsTrigger>
+            <TabsTrigger value="notes" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">Notas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="history" className="space-y-3 mt-4">
             {sessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum treino registrado.</p>
+              <p className="text-sm text-white/40">Nenhum treino registrado.</p>
             ) : (
               sessions.map((s) => (
-                <Card key={s.id} className="cursor-pointer" onClick={() => viewSessionSets(s.id)}>
-                  <CardContent className="py-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium">{s.template_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(s.executed_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">{s.exercise_count} exercício(s)</p>
-                        <p className="text-xs text-muted-foreground">{Number(s.total_volume).toLocaleString()} kg vol.</p>
-                      </div>
+                <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.04] p-3 cursor-pointer hover:bg-white/[0.07] transition-all" onClick={() => viewSessionSets(s.id)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-white">{s.template_name}</p>
+                      <p className="text-xs text-white/40">{format(new Date(s.executed_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}</p>
                     </div>
-                    {s.notes && <p className="text-xs text-muted-foreground mt-2 italic">"{s.notes}"</p>}
-                    {selectedSession === s.id && sessionSets.length > 0 && (
-                      <div className="mt-3 border-t pt-3 space-y-1">
-                        {sessionSets.map((ss) => (
-                          <div key={ss.id} className="grid grid-cols-[1fr_auto_auto] gap-4 text-xs">
-                            <span>{ss.exercise_name}</span>
-                            <span className="text-muted-foreground">{ss.reps} reps</span>
-                            <span className="text-muted-foreground">{ss.weight} kg</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    <div className="text-right">
+                      <p className="text-xs text-white/40">{s.exercise_count} exercício(s)</p>
+                      <p className="text-xs text-white/40">{Number(s.total_volume).toLocaleString()} kg vol.</p>
+                    </div>
+                  </div>
+                  {s.notes && <p className="text-xs text-white/30 mt-2 italic">"{s.notes}"</p>}
+                  {selectedSession === s.id && sessionSets.length > 0 && (
+                    <div className="mt-3 border-t border-white/10 pt-3 space-y-1">
+                      {sessionSets.map((ss) => (
+                        <div key={ss.id} className="grid grid-cols-[1fr_auto_auto] gap-4 text-xs">
+                          <span className="text-white/70">{ss.exercise_name}</span>
+                          <span className="text-white/40">{ss.reps} reps</span>
+                          <span className="text-white/40">{ss.weight} kg</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))
             )}
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-3 mt-4">
             {allTemplates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Crie modelos de treino primeiro.</p>
+              <p className="text-sm text-white/40">Crie modelos de treino primeiro.</p>
             ) : (
               allTemplates.map((t) => {
                 const assigned = assignedTemplateIds.has(t.id);
                 return (
                   <div key={t.id} className="flex items-center gap-3 py-2">
-                    <Checkbox checked={assigned} onCheckedChange={() => toggleTemplate(t.id, assigned)} />
+                    <Checkbox checked={assigned} onCheckedChange={() => toggleTemplate(t.id, assigned)}
+                      className="border-white/20 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" />
                     <div>
-                      <p className="text-sm">{t.name}</p>
-                      {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
+                      <p className="text-sm text-white">{t.name}</p>
+                      {t.description && <p className="text-xs text-white/40">{t.description}</p>}
                     </div>
                   </div>
                 );
@@ -162,13 +146,9 @@ export default function StudentDetail() {
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-3 mt-4">
-            <Textarea
-              placeholder="Notas privadas sobre o aluno..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={6}
-            />
-            <Button size="sm" onClick={saveNote}>
+            <Textarea placeholder="Notas privadas sobre o aluno..." value={note} onChange={(e) => setNote(e.target.value)} rows={6}
+              className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+            <Button size="sm" onClick={saveNote} style={{ background: 'linear-gradient(135deg, hsl(224 76% 33%), hsl(217 91% 60%))' }}>
               <Save className="h-4 w-4 mr-1" /> Salvar Nota
             </Button>
           </TabsContent>
