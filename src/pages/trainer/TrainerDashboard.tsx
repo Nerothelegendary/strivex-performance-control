@@ -3,7 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2 } from "lucide-react";
+import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Dumbbell } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
@@ -87,12 +88,12 @@ export default function TrainerDashboard() {
   };
 
   const getStatusInfo = (lastSession: string | null, assignedTemplates: number) => {
-    if (assignedTemplates === 0) return { label: "Aguardando programação", color: "bg-white/20" };
-    if (!lastSession) return { label: "Aguardando primeiro treino", color: "bg-yellow-400" };
+    if (assignedTemplates === 0) return { label: "Aguardando programação", variant: "warning" as const };
+    if (!lastSession) return { label: "Aguardando primeiro treino", variant: "warning" as const };
     const days = differenceInDays(new Date(), new Date(lastSession));
-    if (days <= 4) return { label: "Em dia", color: "bg-emerald-400" };
-    if (days <= 6) return { label: "Atenção", color: "bg-yellow-400" };
-    return { label: "Inativo", color: "bg-red-400" };
+    if (days <= 4) return { label: "Em dia", variant: "success" as const };
+    if (days <= 6) return { label: "Atenção", variant: "warning" as const };
+    return { label: "Inativo", variant: "danger" as const };
   };
 
   const generateInvite = async () => {
@@ -157,12 +158,12 @@ export default function TrainerDashboard() {
             { icon: ClipboardList, value: totalAssigned, label: "Treinos atribuídos" },
             { icon: CheckCircle2, value: weeklyCompleted, label: "Concluídos na semana" },
           ].map(({ icon: Icon, value, label }) => (
-            <div key={label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 mx-auto mb-1.5">
+            <div key={label} className="rounded-xl border border-white/10 bg-white/[0.04] p-5 text-center">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 mx-auto mb-2">
                 <Icon className="h-3.5 w-3.5 text-white/70" />
               </div>
               <p className="text-xl font-bold text-white">{value}</p>
-              <p className="text-[10px] text-white/40 leading-tight">{label}</p>
+              <p className="text-[10px] text-white/40 leading-tight mt-0.5">{label}</p>
             </div>
           ))}
         </div>
@@ -189,20 +190,35 @@ export default function TrainerDashboard() {
                 return (
                   <div
                     key={s.student_id}
-                    className="rounded-xl border border-white/10 bg-white/[0.04] p-4 space-y-2.5 cursor-pointer hover:bg-white/[0.07] active:scale-[0.98] transition-all"
+                    className="rounded-xl border border-white/10 bg-white/[0.04] p-5 space-y-3 cursor-pointer hover:bg-white/[0.07] active:scale-[0.98] transition-all"
                     onClick={() => navigate(`/trainer/student/${s.student_id}`)}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`h-2 w-2 rounded-full shrink-0 ${status.color}`} />
+                    <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold truncate text-white">{s.full_name || "Sem nome"}</p>
+                      <Badge className={
+                        status.variant === "success"
+                          ? "bg-emerald-400/15 text-emerald-300 border-emerald-400/20 text-[10px] px-2 py-0.5"
+                          : status.variant === "warning"
+                          ? "bg-yellow-400/15 text-yellow-300 border-yellow-400/20 text-[10px] px-2 py-0.5"
+                          : "bg-red-400/15 text-red-300 border-red-400/20 text-[10px] px-2 py-0.5"
+                      }>{status.label}</Badge>
                     </div>
-                    <div className="space-y-1 pl-[18px]">
+                    <div className="space-y-1">
                       <p className="text-xs text-white/40">Treino ativo: {s.assigned_templates > 0 ? `${s.assigned_templates} atribuído(s)` : "Nenhum"}</p>
-                      <p className="text-xs text-white/40">Status: {status.label}</p>
                       <p className="text-xs text-white/40">
                         Última atividade:{" "}
                         {s.last_session_at ? `${differenceInDays(new Date(), new Date(s.last_session_at))} dia(s) atrás` : "—"}
                       </p>
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white text-xs h-7 px-2.5"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/trainer/student/${s.student_id}`); }}
+                      >
+                        <Dumbbell className="h-3 w-3 mr-1" /> Atribuir Treino
+                      </Button>
                     </div>
                   </div>
                 );
