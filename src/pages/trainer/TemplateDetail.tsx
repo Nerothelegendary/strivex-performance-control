@@ -109,7 +109,13 @@ export default function TemplateDetail() {
     setTimeout(() => nameInputRef.current?.focus(), 50);
   };
 
-  if (!template) return null;
+  if (!template) return (
+    <Layout>
+      <div className="flex items-center justify-center py-20">
+        <p className="text-sm text-muted-foreground">Carregando treino...</p>
+      </div>
+    </Layout>
+  );
 
   return (
     <Layout>

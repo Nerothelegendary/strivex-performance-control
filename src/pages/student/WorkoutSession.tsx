@@ -134,7 +134,7 @@ export default function WorkoutSession() {
     }
 
     toast.success("Treino salvo com sucesso!");
-    navigate("/");
+    navigate("/student");
   };
 
   if (loading) return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></Layout>;
@@ -144,7 +144,7 @@ export default function WorkoutSession() {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/student")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
