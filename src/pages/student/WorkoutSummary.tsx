@@ -17,12 +17,19 @@ interface PREntry {
   weight: number;
 }
 
+/**
+ * State passed from WorkoutSession after a successful save.
+ * - totalVolume / exerciseCount: authoritative values from the DB trigger
+ * - sets: passed for display-only (individual row rendering), NOT for aggregation
+ */
 export interface WorkoutSummaryState {
   sessionId: string;
   templateId: string;
   templateName: string;
   studentId: string;
-  sets: SummarySet[];
+  totalVolume: number;    // from workout_sessions.total_volume — trigger-computed
+  exerciseCount: number;  // from workout_sessions.exercise_count — trigger-computed
+  sets: SummarySet[];     // display-only: individual set rows
 }
 
 interface ExerciseVolume {
@@ -48,10 +55,10 @@ export default function WorkoutSummary() {
   const loadComparison = async () => {
     if (!state) return;
 
-    // 1. Previous session of same template (excluding current session)
+    // ── 1. Previous session volume for this template (single DB read, limit 1) ────────
     const { data: prevSessions } = await supabase
       .from("workout_sessions")
-      .select("id, total_volume")
+      .select("total_volume")
       .eq("student_id", state.studentId)
       .eq("template_id", state.templateId)
       .neq("id", state.sessionId)
@@ -62,43 +69,36 @@ export default function WorkoutSummary() {
       setPrevVolume(Number(prevSessions[0].total_volume));
     }
 
-    // 2. PR detection — compare current session max weights vs all previous session weights
-    const { data: allPrevSets } = await supabase
-      .from("session_sets")
-      .select("exercise_name, weight")
-      .in(
-        "session_id",
-        (prevSessions ?? []).length > 0
-          ? (
-              await supabase
-                .from("workout_sessions")
-                .select("id")
-                .eq("student_id", state.studentId)
-                .neq("id", state.sessionId)
-            ).data?.map((s) => s.id) ?? []
-          : ["__none__"]
-      );
-
-    const previousMaxes = new Map<string, number>();
-    allPrevSets?.forEach((s) => {
-      const cur = previousMaxes.get(s.exercise_name) ?? 0;
-      if (Number(s.weight) > cur) previousMaxes.set(s.exercise_name, Number(s.weight));
+    // ── 2. PR detection — 100% RPC-based, DB is single source of truth ───────────────
+    //    get_personal_bests already includes the current session (sets are persisted).
+    //    A PR was achieved when this session's max weight matches the DB-returned max.
+    const { data: pbData, error: pbError } = await supabase.rpc("get_personal_bests", {
+      p_student_id: state.studentId,
     });
 
-    const currentMaxes = new Map<string, number>();
-    state.sets.forEach((s) => {
-      const cur = currentMaxes.get(s.exercise_name) ?? 0;
-      if (s.weight > cur) currentMaxes.set(s.exercise_name, s.weight);
-    });
+    if (!pbError && pbData) {
+      // Current-session max per exercise — used only to MATCH against DB values,
+      // not to compute historical aggregations.
+      const sessionMaxes = new Map<string, number>();
+      state.sets.forEach((s) => {
+        const cur = sessionMaxes.get(s.exercise_name) ?? 0;
+        if (s.weight > cur) sessionMaxes.set(s.exercise_name, s.weight);
+      });
 
-    const prs: PREntry[] = [];
-    currentMaxes.forEach((weight, name) => {
-      const prev = previousMaxes.get(name) ?? 0;
-      if (weight > prev && weight > 0) prs.push({ exercise_name: name, weight });
-    });
-    setNewPRs(prs);
+      const prs: PREntry[] = [];
+      pbData.forEach((pb) => {
+        const sessionMax = sessionMaxes.get(pb.exercise_name);
+        // Confirmed PR: DB max == this session's max (the session established the record)
+        if (sessionMax !== undefined && sessionMax >= Number(pb.max_weight) && sessionMax > 0) {
+          prs.push({ exercise_name: pb.exercise_name, weight: Number(pb.max_weight) });
+        }
+      });
+      setNewPRs(prs);
+    }
 
-    // 3. Per-exercise volume breakdown for current session
+    // ── 3. Per-exercise volume breakdown — current session only (display-only) ────────
+    //    state.sets is the just-saved session: equivalent to querying session_sets for
+    //    this session_id. No historical data involved.
     const volMap = new Map<string, number>();
     state.sets.forEach((s) => {
       volMap.set(s.exercise_name, (volMap.get(s.exercise_name) ?? 0) + s.reps * s.weight);
@@ -112,9 +112,12 @@ export default function WorkoutSummary() {
 
   if (!state) return null;
 
-  const totalVolume = state.sets.reduce((acc, s) => acc + s.reps * s.weight, 0);
+  // ── Authoritative DB values — no client computation ───────────────────────────────
+  const totalVolume = state.totalVolume;          // trigger-computed
   const volumeDiff = prevVolume !== null ? totalVolume - prevVolume : null;
-  const volumePct = prevVolume && prevVolume > 0 ? Math.round((volumeDiff! / prevVolume) * 100) : null;
+  const volumePct = prevVolume && prevVolume > 0
+    ? Math.round((volumeDiff! / prevVolume) * 100)
+    : null;
 
   const container: Variants = {
     hidden: { opacity: 0 },
@@ -147,7 +150,7 @@ export default function WorkoutSummary() {
             <p className="text-sm text-muted-foreground mt-1">{state.templateName}</p>
           </motion.div>
 
-          {/* PRs */}
+          {/* PRs — from get_personal_bests RPC */}
           {newPRs.length > 0 && (
             <motion.div
               variants={item}
@@ -175,13 +178,16 @@ export default function WorkoutSummary() {
             </motion.div>
           )}
 
-          {/* Volume stats */}
+          {/* Volume stats — totalVolume from DB trigger, prevVolume from DB query */}
           <motion.div variants={item} className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-border bg-card/40 p-4">
               <p className="text-xs text-muted-foreground mb-1">Volume Total</p>
               <p className="text-2xl font-bold text-foreground">
                 {totalVolume.toLocaleString()}
                 <span className="text-sm font-normal text-muted-foreground ml-1">kg</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {state.exerciseCount} exercício{state.exerciseCount !== 1 ? "s" : ""}
               </p>
             </div>
 
@@ -220,7 +226,7 @@ export default function WorkoutSummary() {
             </div>
           </motion.div>
 
-          {/* Exercise breakdown */}
+          {/* Exercise breakdown — current session only, from state.sets (display-only) */}
           {exerciseBreakdown.length > 0 && (
             <motion.div variants={item} className="space-y-2">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -251,7 +257,7 @@ export default function WorkoutSummary() {
             </motion.div>
           )}
 
-          {/* Sets summary */}
+          {/* Sets list — state.sets used for display-only: individual row rendering */}
           <motion.div variants={item} className="rounded-xl border border-border bg-card/30 p-4">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               Resumo das Séries
