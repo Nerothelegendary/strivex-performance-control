@@ -13,6 +13,7 @@ import { StudentCardSkeleton } from "@/components/trainer/StudentCardSkeleton";
 import { getStatusInfo } from "@/components/trainer/StatusBadge";
 import { InactivityAlerts } from "@/components/trainer/InactivityAlerts";
 import { ActivityFeed } from "@/components/trainer/ActivityFeed";
+import { OnboardingChecklist } from "@/components/trainer/OnboardingChecklist";
 
 interface StudentData {
   student_id: string;
@@ -32,6 +33,8 @@ export default function TrainerDashboard() {
   const [totalAssigned, setTotalAssigned] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hasTemplates, setHasTemplates] = useState(false);
+  const [hasAssignments, setHasAssignments] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -40,19 +43,24 @@ export default function TrainerDashboard() {
 
   const loadStudents = async () => {
     if (!user) return;
-    const { data: links } = await supabase.from("trainer_students").select("student_id").eq("trainer_id", user.id);
-
-    if (!links || links.length === 0) { setStudents([]); setLoading(false); return; }
-
-    const studentIds = links.map((l) => l.student_id);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
+    const [linksRes, templatesCountRes] = await Promise.all([
+      supabase.from("trainer_students").select("student_id").eq("trainer_id", user.id),
+      supabase.from("workout_templates").select("id", { count: "exact", head: true }).eq("trainer_id", user.id),
+    ]);
+
+    setHasTemplates((templatesCountRes.count ?? 0) > 0);
+
+    const links = linksRes.data;
+    if (!links || links.length === 0) { setStudents([]); setLoading(false); return; }
+
+    const studentIds = links.map((l) => l.student_id);
+
     const [profilesRes, lastSessionsRes, weeklySessionsRes, templatesRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", studentIds),
-      // Server-side MAX(executed_at) per student — index-backed, no client-side Map needed
       supabase.rpc("get_last_sessions", { p_student_ids: studentIds }),
-      // Bounded weekly count with date filter — hits idx_workout_sessions_student_executed_desc
       supabase.from("workout_sessions")
         .select("id", { count: "exact", head: true })
         .in("student_id", studentIds)
@@ -64,7 +72,6 @@ export default function TrainerDashboard() {
     const lastSessions = (lastSessionsRes.data ?? []) as { student_id: string; last_session_at: string | null }[];
     const templates = templatesRes.data;
 
-    // Server already returns one row per student — O(n) Map from a pre-aggregated result
     const lastSessionMap = new Map<string, string>();
     lastSessions.forEach((s) => { if (s.last_session_at) lastSessionMap.set(s.student_id, s.last_session_at); });
 
@@ -73,6 +80,7 @@ export default function TrainerDashboard() {
 
     setWeeklyCompleted(weeklySessionsRes.count ?? 0);
     setTotalAssigned(templates?.length ?? 0);
+    setHasAssignments((templates?.length ?? 0) > 0);
 
     setStudents(studentIds.map((sid) => {
       const p = profiles?.find((p) => p.user_id === sid);
@@ -148,6 +156,18 @@ export default function TrainerDashboard() {
               <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)}>✕</Button>
             </div>
           </div>
+        )}
+
+        {/* Onboarding Checklist — only shown while no students are linked */}
+        {!loading && students.length === 0 && (
+          <OnboardingChecklist
+            hasTemplates={hasTemplates}
+            hasStudents={students.length > 0}
+            hasAssignments={hasAssignments}
+            onNavigateTemplates={() => navigate("/trainer/templates")}
+            onInvite={generateInvite}
+            onNavigateStudents={() => navigate("/trainer/templates")}
+          />
         )}
 
         <div className="grid grid-cols-3 gap-2">

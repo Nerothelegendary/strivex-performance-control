@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Play, ClipboardList, Loader2, ChevronDown } from "lucide-react";
+import { Play, ClipboardList, Loader2, ChevronDown, History } from "lucide-react";
 import { useNavigate, Navigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
@@ -83,9 +83,20 @@ export default function StudentDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Meus Treinos</h2>
-          <p className="text-sm text-muted-foreground">Escolha um treino para iniciar</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Meus Treinos</h2>
+            <p className="text-sm text-muted-foreground">Escolha um treino para iniciar</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={() => navigate("/student/history")}
+          >
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Histórico</span>
+          </Button>
         </div>
 
         {templates.length === 0 ? (
