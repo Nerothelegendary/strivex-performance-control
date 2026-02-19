@@ -18,6 +18,7 @@ import StudentDetail from "./pages/trainer/StudentDetail";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import EnterInvite from "./pages/student/EnterInvite";
 import WorkoutSession from "./pages/student/WorkoutSession";
+import WorkoutSummary from "./pages/student/WorkoutSummary";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 
@@ -51,6 +52,7 @@ function AnimatedRoutes() {
         <Route path="/student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
         <Route path="/student/invite" element={<ProtectedRoute allowedRole="student"><EnterInvite /></ProtectedRoute>} />
         <Route path="/student/session/:templateId" element={<ProtectedRoute allowedRole="student"><WorkoutSession /></ProtectedRoute>} />
+        <Route path="/student/summary" element={<ProtectedRoute allowedRole="student"><WorkoutSummary /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

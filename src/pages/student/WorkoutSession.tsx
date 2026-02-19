@@ -303,7 +303,16 @@ export default function WorkoutSession() {
     if (templateId) clearDraft(templateId);
 
     toast.success("Treino salvo com sucesso!");
-    navigate("/student");
+    navigate("/student/summary", {
+      state: {
+        sessionId: session.id,
+        templateId: template.id,
+        templateName: template.name,
+        studentId: user.id,
+        sets: allSets,
+      },
+      replace: true,
+    });
   };
 
   if (loading)
