@@ -45,25 +45,36 @@ export default function TrainerDashboard() {
     if (!links || links.length === 0) { setStudents([]); setLoading(false); return; }
 
     const studentIds = links.map((l) => l.student_id);
-    const [profilesRes, sessionsRes, templatesRes] = await Promise.all([
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const [profilesRes, lastSessionsRes, weeklySessionsRes, templatesRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", studentIds),
-      supabase.from("workout_sessions").select("student_id, executed_at").in("student_id", studentIds).order("executed_at", { ascending: false }),
+      // Fetch only the most recent session per student (for last_session_at display)
+      supabase.from("workout_sessions")
+        .select("student_id, executed_at")
+        .in("student_id", studentIds)
+        .order("executed_at", { ascending: false })
+        .limit(studentIds.length * 1), // one per student is enough for last-session tracking
+      // Separate bounded query for weekly count
+      supabase.from("workout_sessions")
+        .select("id", { count: "exact", head: true })
+        .in("student_id", studentIds)
+        .gte("executed_at", weekAgo.toISOString()),
       supabase.from("student_templates").select("student_id, template_id").in("student_id", studentIds),
     ]);
 
     const profiles = profilesRes.data;
-    const sessions = sessionsRes.data;
+    const lastSessions = lastSessionsRes.data;
     const templates = templatesRes.data;
 
     const lastSessionMap = new Map<string, string>();
-    sessions?.forEach((s) => { if (!lastSessionMap.has(s.student_id)) lastSessionMap.set(s.student_id, s.executed_at); });
+    lastSessions?.forEach((s) => { if (!lastSessionMap.has(s.student_id)) lastSessionMap.set(s.student_id, s.executed_at); });
 
     const templateCountMap = new Map<string, number>();
     templates?.forEach((t) => { templateCountMap.set(t.student_id, (templateCountMap.get(t.student_id) ?? 0) + 1); });
 
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    setWeeklyCompleted(sessions?.filter((s) => new Date(s.executed_at) >= weekAgo).length ?? 0);
+    setWeeklyCompleted(weeklySessionsRes.count ?? 0);
     setTotalAssigned(templates?.length ?? 0);
 
     setStudents(studentIds.map((sid) => {

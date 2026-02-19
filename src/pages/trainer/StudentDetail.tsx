@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,12 +15,17 @@ import { PlannedVsActual } from "@/components/trainer/PlannedVsActual";
 import { VolumeChart } from "@/components/trainer/VolumeChart";
 import type { Tables } from "@/integrations/supabase/types";
 
+const PAGE_SIZE = 20;
+
 export default function StudentDetail() {
   const { studentId } = useParams<{ studentId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [studentProfile, setStudentProfile] = useState<Tables<"profiles"> | null>(null);
   const [sessions, setSessions] = useState<Tables<"workout_sessions">[]>([]);
+  const [sessionsPage, setSessionsPage] = useState(0);
+  const [hasMoreSessions, setHasMoreSessions] = useState(false);
+  const [loadingMoreSessions, setLoadingMoreSessions] = useState(false);
   const [note, setNote] = useState("");
   const [existingNote, setExistingNote] = useState<Tables<"trainer_notes"> | null>(null);
   const [allTemplates, setAllTemplates] = useState<Tables<"workout_templates">[]>([]);
@@ -36,17 +41,42 @@ export default function StudentDetail() {
     if (!user || !studentId) return;
     const [profileRes, sessionsRes, noteRes, templatesRes, assignedRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", studentId).single(),
-      supabase.from("workout_sessions").select("*").eq("student_id", studentId).order("executed_at", { ascending: false }),
+      supabase
+        .from("workout_sessions")
+        .select("*")
+        .eq("student_id", studentId)
+        .order("executed_at", { ascending: false })
+        .range(0, PAGE_SIZE - 1),
       supabase.from("trainer_notes").select("*").eq("trainer_id", user.id).eq("student_id", studentId).maybeSingle(),
       supabase.from("workout_templates").select("*").eq("trainer_id", user.id).order("name"),
       supabase.from("student_templates").select("template_id").eq("student_id", studentId),
     ]);
     setStudentProfile(profileRes.data);
-    setSessions(sessionsRes.data ?? []);
+    const fetchedSessions = sessionsRes.data ?? [];
+    setSessions(fetchedSessions);
+    setSessionsPage(0);
+    setHasMoreSessions(fetchedSessions.length === PAGE_SIZE);
     setExistingNote(noteRes.data);
     setNote(noteRes.data?.content ?? "");
     setAllTemplates(templatesRes.data ?? []);
     setAssignedTemplateIds(new Set((assignedRes.data ?? []).map((a) => a.template_id)));
+  };
+
+  const loadMoreSessions = async () => {
+    if (!studentId || loadingMoreSessions) return;
+    setLoadingMoreSessions(true);
+    const nextPage = sessionsPage + 1;
+    const { data } = await supabase
+      .from("workout_sessions")
+      .select("*")
+      .eq("student_id", studentId)
+      .order("executed_at", { ascending: false })
+      .range(nextPage * PAGE_SIZE, nextPage * PAGE_SIZE + PAGE_SIZE - 1);
+    const fetched = data ?? [];
+    setSessions((prev) => [...prev, ...fetched]);
+    setSessionsPage(nextPage);
+    setHasMoreSessions(fetched.length === PAGE_SIZE);
+    setLoadingMoreSessions(false);
   };
 
   const saveNote = async () => {
@@ -99,26 +129,43 @@ export default function StudentDetail() {
             {sessions.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum treino registrado.</p>
             ) : (
-              sessions.map((s) => (
-                <div key={s.id} className="rounded-xl border border-border bg-card/40 p-3 cursor-pointer hover:bg-card/70 transition-all" onClick={() => viewSessionSets(s.id)}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{s.template_name}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(s.executed_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}</p>
+              <>
+                {sessions.map((s) => (
+                  <div key={s.id} className="rounded-xl border border-border bg-card/40 p-3 cursor-pointer hover:bg-card/70 transition-all" onClick={() => viewSessionSets(s.id)}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{s.template_name}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(s.executed_at), "dd MMM yyyy, HH:mm", { locale: ptBR })}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">{s.exercise_count} exercício(s)</p>
+                        <p className="text-xs text-muted-foreground">{Number(s.total_volume).toLocaleString()} kg vol.</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">{s.exercise_count} exercício(s)</p>
-                      <p className="text-xs text-muted-foreground">{Number(s.total_volume).toLocaleString()} kg vol.</p>
-                    </div>
+                    {s.notes && <p className="text-xs text-muted-foreground/60 mt-2 italic">"{s.notes}"</p>}
+                    {selectedSession === s.id && sessionSets.length > 0 && (
+                      <div className="mt-3 border-t border-border pt-3">
+                        <PlannedVsActual session={s} sessionSets={sessionSets} />
+                      </div>
+                    )}
                   </div>
-                  {s.notes && <p className="text-xs text-muted-foreground/60 mt-2 italic">"{s.notes}"</p>}
-                  {selectedSession === s.id && sessionSets.length > 0 && (
-                    <div className="mt-3 border-t border-border pt-3">
-                      <PlannedVsActual session={s} sessionSets={sessionSets} />
-                    </div>
-                  )}
-                </div>
-              ))
+                ))}
+                {hasMoreSessions && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={loadMoreSessions}
+                    disabled={loadingMoreSessions}
+                  >
+                    {loadingMoreSessions ? (
+                      <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Carregando...</>
+                    ) : (
+                      "Carregar mais"
+                    )}
+                  </Button>
+                )}
+              </>
             )}
           </TabsContent>
 
