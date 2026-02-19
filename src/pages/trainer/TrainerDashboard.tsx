@@ -98,8 +98,15 @@ export default function TrainerDashboard() {
     toast.success("Link copiado para a área de transferência!");
   };
 
-  const statusFilters = [
-    { key: null, label: "Todos" },
+  const removeStudent = async (studentId: string) => {
+    const { error } = await supabase.from("trainer_students").delete().eq("student_id", studentId).eq("trainer_id", user!.id);
+    if (error) { toast.error("Erro ao remover aluno."); return; }
+    toast.success("Aluno removido.");
+    loadStudents();
+  };
+
+
+    const statusFilters = [
     { key: "success", label: "Em dia" },
     { key: "warning", label: "Atenção" },
     { key: "danger", label: "Inativo" },
@@ -184,7 +191,7 @@ export default function TrainerDashboard() {
           ) : (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               {filteredStudents.map((s) => (
-                <StudentCard key={s.student_id} studentId={s.student_id} fullName={s.full_name} lastSessionAt={s.last_session_at} assignedTemplates={s.assigned_templates} />
+                <StudentCard key={s.student_id} studentId={s.student_id} fullName={s.full_name} lastSessionAt={s.last_session_at} assignedTemplates={s.assigned_templates} onRemove={removeStudent} />
               ))}
             </div>
           )}
