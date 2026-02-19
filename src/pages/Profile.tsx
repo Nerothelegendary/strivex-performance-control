@@ -69,30 +69,14 @@ export default function Profile() {
           label2: "Templates Criados", value2: templatesRes.count ?? 0,
         });
       } else {
-        const [sessionsRes, pbsRes] = await Promise.all([
+        const [sessionsRes, pbData] = await Promise.all([
           supabase.from("workout_sessions").select("id", { count: "exact", head: true }).eq("student_id", user.id),
-          supabase.from("session_sets").select("exercise_name, weight").eq("session_id", "").limit(0), // placeholder
+          supabase.rpc("get_personal_bests", { p_student_id: user.id }),
         ]);
-        // Count unique exercise PBs from session_sets
-        const { data: allSets } = await supabase
-          .from("workout_sessions")
-          .select("id")
-          .eq("student_id", user.id);
-        
-        let pbCount = 0;
-        if (allSets && allSets.length > 0) {
-          const sessionIds = allSets.map(s => s.id);
-          const { data: sets } = await supabase
-            .from("session_sets")
-            .select("exercise_name")
-            .in("session_id", sessionIds);
-          const uniqueExercises = new Set(sets?.map(s => s.exercise_name));
-          pbCount = uniqueExercises.size;
-        }
 
         setStats({
           label1: "Treinos Concluídos", value1: sessionsRes.count ?? 0,
-          label2: "Recordes Pessoais", value2: pbCount,
+          label2: "Recordes Pessoais", value2: pbData.data?.length ?? 0,
         });
       }
     } finally {
