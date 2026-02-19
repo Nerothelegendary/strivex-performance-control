@@ -36,7 +36,8 @@ export default function Profile() {
 
   // Role-specific stats
   const [stats, setStats] = useState<{ label1: string; value1: number; label2: string; value2: number }>({
-    label1: "", value1: 0, label2: "", value2: 0,
+    label1: role === "trainer" ? "Alunos Ativos" : "Treinos Concluídos", value1: 0,
+    label2: role === "trainer" ? "Templates Criados" : "Recordes Pessoais", value2: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -161,7 +162,7 @@ export default function Profile() {
   };
 
   const roleBadge = role === "trainer"
-    ? { label: "Coach", className: "bg-primary/20 text-primary border-primary/30" }
+    ? { label: "Treinador", className: "bg-primary/20 text-primary border-primary/30" }
     : { label: "Atleta", className: "bg-accent/20 text-accent border-accent/30" };
 
   return (
@@ -231,10 +232,10 @@ export default function Profile() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { icon: role === "trainer" ? Users : Dumbbell, label: stats.label1, value: stats.value1 },
-            { icon: role === "trainer" ? FileText : Trophy, label: stats.label2, value: stats.value2 },
+            { icon: role === "trainer" ? Users : Dumbbell, label: stats.label1, value: stats.value1, key: "stat1" },
+            { icon: role === "trainer" ? FileText : Trophy, label: stats.label2, value: stats.value2, key: "stat2" },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-border bg-card/40 backdrop-blur-sm p-4 text-center space-y-1">
+            <div key={stat.key} className="rounded-xl border border-border bg-card/40 backdrop-blur-sm p-4 text-center space-y-1">
               <stat.icon className="h-5 w-5 mx-auto text-muted-foreground" />
               {statsLoading ? (
                 <div className="h-7 w-8 mx-auto rounded bg-muted animate-pulse" />
