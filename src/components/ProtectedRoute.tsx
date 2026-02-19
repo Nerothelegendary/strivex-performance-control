@@ -7,7 +7,7 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole: AppRole;
+  allowedRole?: AppRole;
 }
 
 export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
@@ -24,7 +24,7 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   if (!user) return <Navigate to="/login" replace />;
   if (!role) return <Navigate to="/select-role" replace />;
 
-  if (role !== allowedRole) {
+  if (allowedRole && role !== allowedRole) {
     const redirect = role === "trainer" ? "/trainer" : "/student";
     return <Navigate to={redirect} replace />;
   }

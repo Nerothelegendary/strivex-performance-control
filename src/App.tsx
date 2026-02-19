@@ -19,6 +19,7 @@ import StudentDashboard from "./pages/student/StudentDashboard";
 import EnterInvite from "./pages/student/EnterInvite";
 import WorkoutSession from "./pages/student/WorkoutSession";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/select-role" element={<SelectRole />} />
         <Route path="/invite" element={<AcceptInvite />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
         {/* Trainer routes */}
         <Route path="/trainer" element={<ProtectedRoute allowedRole="trainer"><TrainerDashboard /></ProtectedRoute>} />
