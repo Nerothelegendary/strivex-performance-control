@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, ChevronRight, Trash2, ArrowLeft, Copy } from "lucide-react";
+import { Plus, ChevronRight, Trash2, ArrowLeft, Copy, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -22,6 +22,9 @@ export default function WorkoutTemplates() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) { loadTemplates(); loadStudents(); }
@@ -108,6 +111,24 @@ export default function WorkoutTemplates() {
     loadTemplates();
   };
 
+  const startRename = (t: Tables<"workout_templates">) => {
+    setEditingId(t.id);
+    setEditValue(t.name);
+    setTimeout(() => editRef.current?.focus(), 50);
+  };
+
+  const saveRename = async (id: string) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) { setEditingId(null); return; }
+    const tpl = templates.find((t) => t.id === id);
+    if (tpl && trimmed !== tpl.name) {
+      await supabase.from("workout_templates").update({ name: trimmed }).eq("id", id);
+      setTemplates((prev) => prev.map((t) => t.id === id ? { ...t, name: trimmed } : t));
+      toast.success("Nome atualizado.");
+    }
+    setEditingId(null);
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -149,9 +170,35 @@ export default function WorkoutTemplates() {
             {templates.map((t) => (
               <div key={t.id} className="rounded-xl border border-border bg-card/40 hover:bg-card/70 transition-all">
                 <div className="py-3 px-4 flex items-center justify-between">
-                  <div className="flex-1 cursor-pointer min-w-0" onClick={() => navigate(`/trainer/template/${t.id}`)}>
-                    <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
-                    {t.description && <p className="text-xs text-muted-foreground truncate">{t.description}</p>}
+                  <div className="flex-1 min-w-0">
+                    {editingId === t.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          ref={editRef}
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => saveRename(t.id)}
+                          onKeyDown={(e) => { if (e.key === "Enter") saveRename(t.id); if (e.key === "Escape") setEditingId(null); }}
+                          className="flex-1 min-w-0 text-sm font-medium text-foreground bg-transparent border-b border-accent/50 outline-none py-0.5"
+                        />
+                        <button onClick={() => saveRename(t.id)} className="p-1 text-accent hover:text-accent/80">
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="cursor-pointer" onClick={() => navigate(`/trainer/template/${t.id}`)}>
+                        <div className="flex items-center gap-1.5 group">
+                          <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); startRename(t); }}
+                            className="p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-muted-foreground transition-opacity"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        </div>
+                        {t.description && <p className="text-xs text-muted-foreground truncate">{t.description}</p>}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
                     <BulkAssignDialog templateId={t.id} templateName={t.name} students={students} onDone={loadTemplates} />
