@@ -237,6 +237,16 @@ export default function WorkoutSession() {
       }
     }
 
+    // Fetch trigger-computed aggregates — recalculate_session_aggregates fires after session_sets insert
+    const { data: updatedSession } = await supabase
+      .from("workout_sessions")
+      .select("total_volume, exercise_count")
+      .eq("id", session.id)
+      .single();
+
+    const dbTotalVolume = Number(updatedSession?.total_volume ?? 0);
+    const dbExerciseCount = Number(updatedSession?.exercise_count ?? 0);
+
     // Post activity feed
     try {
       const { data: trainerId } = await supabase.rpc("get_trainer_id", {
@@ -246,33 +256,25 @@ export default function WorkoutSession() {
         const studentName =
           user.user_metadata?.full_name || user.user_metadata?.name || "Aluno";
 
-        const totalVolume = allSets.reduce((acc, s) => acc + s.reps * s.weight, 0);
-
-        const { data: previousSets } = await supabase
-          .from("session_sets")
-          .select("exercise_name, weight")
-          .neq("session_id", session.id)
-          .in(
-            "session_id",
-            (
-              await supabase
-                .from("workout_sessions")
-                .select("id")
-                .eq("student_id", user.id)
-            ).data?.map((s) => s.id) ?? []
-          );
-
-        const previousMaxes = new Map<string, number>();
-        previousSets?.forEach((s) => {
-          const current = previousMaxes.get(s.exercise_name) ?? 0;
-          if (Number(s.weight) > current) previousMaxes.set(s.exercise_name, Number(s.weight));
+        // PR detection via get_personal_bests RPC — DB is the single source of truth.
+        // The RPC already includes the current session since sets are persisted.
+        const { data: pbData } = await supabase.rpc("get_personal_bests", {
+          p_student_id: user.id,
         });
 
-        const newPRs: string[] = [];
+        // Build current-session max per exercise (used only to match against DB-returned PRs)
+        const sessionMaxes = new Map<string, number>();
         allSets.forEach((s) => {
-          const prevMax = previousMaxes.get(s.exercise_name) ?? 0;
-          if (s.weight > prevMax && s.weight > 0 && !newPRs.includes(s.exercise_name)) {
-            newPRs.push(s.exercise_name);
+          const cur = sessionMaxes.get(s.exercise_name) ?? 0;
+          if (s.weight > cur) sessionMaxes.set(s.exercise_name, s.weight);
+        });
+
+        // A PR is confirmed when the DB-returned max_weight matches this session's max
+        const newPRs: Array<{ name: string; weight: number }> = [];
+        pbData?.forEach((pb) => {
+          const sessionMax = sessionMaxes.get(pb.exercise_name);
+          if (sessionMax !== undefined && sessionMax >= Number(pb.max_weight) && sessionMax > 0) {
+            newPRs.push({ name: pb.exercise_name, weight: Number(pb.max_weight) });
           }
         });
 
@@ -280,18 +282,15 @@ export default function WorkoutSession() {
           trainer_id: trainerId,
           student_id: user.id,
           event_type: "workout_completed",
-          message: `${studentName} completou o treino "${template.name}" (${totalVolume.toLocaleString()} kg vol.)`,
+          message: `${studentName} completou o treino "${template.name}" (${dbTotalVolume.toLocaleString()} kg vol.)`,
         });
 
-        for (const exerciseName of newPRs) {
-          const prWeight = Math.max(
-            ...allSets.filter((s) => s.exercise_name === exerciseName).map((s) => s.weight)
-          );
+        for (const pr of newPRs) {
           await supabase.from("activity_feed").insert({
             trainer_id: trainerId,
             student_id: user.id,
             event_type: "personal_best",
-            message: `🏆 ${studentName} bateu recorde em ${exerciseName}: ${prWeight} kg!`,
+            message: `🏆 ${studentName} bateu recorde em ${pr.name}: ${pr.weight} kg!`,
           });
         }
       }
@@ -309,7 +308,9 @@ export default function WorkoutSession() {
         templateId: template.id,
         templateName: template.name,
         studentId: user.id,
-        sets: allSets,
+        totalVolume: dbTotalVolume,
+        exerciseCount: dbExerciseCount,
+        sets: allSets, // passed for display-only (individual set rows)
       },
       replace: true,
     });
