@@ -1,16 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, UserMinus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StatusBadge, getStatusInfo } from "./StatusBadge";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface StudentCardProps {
   studentId: string;
   fullName: string | null;
   lastSessionAt: string | null;
   assignedTemplates: number;
+  onRemove?: (studentId: string) => void;
 }
 
-export function StudentCard({ studentId, fullName, lastSessionAt, assignedTemplates }: StudentCardProps) {
+export function StudentCard({ studentId, fullName, lastSessionAt, assignedTemplates, onRemove }: StudentCardProps) {
   const navigate = useNavigate();
   const status = getStatusInfo(lastSessionAt, assignedTemplates);
 
@@ -35,7 +37,25 @@ export function StudentCard({ studentId, fullName, lastSessionAt, assignedTempla
           Última atividade: {daysSinceLastSession !== null ? `${daysSinceLastSession} dia(s) atrás` : "—"}
         </p>
       </div>
-      <div className="flex justify-end pt-1">
+      <div className="flex justify-end gap-1.5 pt-1">
+        {onRemove && (
+          <ConfirmDialog
+            trigger={
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <UserMinus className="h-3 w-3 mr-1" /> Remover
+              </Button>
+            }
+            title="Remover aluno"
+            description={`Tem certeza que deseja remover ${fullName || "este aluno"} da sua lista? O aluno perderá acesso aos treinos atribuídos.`}
+            confirmLabel="Remover"
+            onConfirm={() => onRemove(studentId)}
+          />
+        )}
         <Button
           size="sm"
           variant="outline"
