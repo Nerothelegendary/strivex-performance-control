@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Play, ClipboardList, Loader2 } from "lucide-react";
+import { Play, ClipboardList, Loader2, ChevronDown } from "lucide-react";
 import { useNavigate, Navigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
@@ -17,6 +17,10 @@ export default function StudentDashboard() {
   const [recentSessions, setRecentSessions] = useState<Tables<"workout_sessions">[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasTrainer, setHasTrainer] = useState<boolean | null>(null);
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [hasMoreSessions, setHasMoreSessions] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 5;
 
   useEffect(() => {
     if (user) load();
@@ -34,9 +38,34 @@ export default function StudentDashboard() {
       setTemplates(tmpl ?? []);
     }
 
-    const { data: sessions } = await supabase.from("workout_sessions").select("*").eq("student_id", user.id).order("executed_at", { ascending: false }).limit(10);
-    setRecentSessions(sessions ?? []);
+    const { data: sessions } = await supabase
+      .from("workout_sessions")
+      .select("*")
+      .eq("student_id", user.id)
+      .order("executed_at", { ascending: false })
+      .limit(PAGE_SIZE + 1);
+    const hasMore = (sessions?.length ?? 0) > PAGE_SIZE;
+    setRecentSessions((sessions ?? []).slice(0, PAGE_SIZE));
+    setHasMoreSessions(hasMore);
+    setSessionsPage(1);
     setLoading(false);
+  };
+
+  const loadMoreSessions = async () => {
+    if (!user || loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = sessionsPage + 1;
+    const { data: sessions } = await supabase
+      .from("workout_sessions")
+      .select("*")
+      .eq("student_id", user.id)
+      .order("executed_at", { ascending: false })
+      .range((nextPage - 1) * PAGE_SIZE, nextPage * PAGE_SIZE);
+    const hasMore = (sessions?.length ?? 0) > PAGE_SIZE;
+    setRecentSessions((prev) => [...prev, ...(sessions ?? []).slice(0, PAGE_SIZE)]);
+    setHasMoreSessions(hasMore);
+    setSessionsPage(nextPage);
+    setLoadingMore(false);
   };
 
   if (loading) {
@@ -100,6 +129,21 @@ export default function StudentDashboard() {
                 </div>
               </div>
             ))}
+
+            {hasMoreSessions && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-foreground gap-1.5"
+                onClick={loadMoreSessions}
+                disabled={loadingMore}
+              >
+                {loadingMore
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <ChevronDown className="h-3.5 w-3.5" />}
+                {loadingMore ? "Carregando..." : "Ver mais sessões"}
+              </Button>
+            )}
           </div>
         )}
       </div>

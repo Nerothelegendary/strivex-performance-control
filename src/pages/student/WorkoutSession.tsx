@@ -9,6 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ExerciseWithSets {
   id: string;
@@ -25,6 +35,7 @@ export default function WorkoutSession() {
   const [sessionNote, setSessionNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
     if (templateId) load();
@@ -144,7 +155,7 @@ export default function WorkoutSession() {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/student")}>
+          <Button variant="ghost" size="icon" onClick={() => setShowLeaveConfirm(true)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -192,6 +203,27 @@ export default function WorkoutSession() {
           </div>
         )}
       </div>
+
+      {/* Leave confirmation dialog */}
+      <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <AlertDialogContent className="border-border bg-popover text-popover-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do treino?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seu progresso não foi salvo. Se sair agora, os dados desta sessão serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar treino</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => navigate("/student")}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
