@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function Profile() {
-  const { user, profile, role, signOut } = useAuth();
+  const { user, profile, role, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,8 +131,7 @@ export default function Profile() {
       if (updateError) throw updateError;
 
       toast.success("Foto atualizada!");
-      // Force refresh
-      window.location.reload();
+      await refreshProfile();
     } catch {
       toast.error("Erro ao enviar foto.");
     } finally {
@@ -148,7 +147,7 @@ export default function Profile() {
       if (error) throw error;
       toast.success("Nome atualizado!");
       setEditingName(false);
-      window.location.reload();
+      await refreshProfile();
     } catch {
       toast.error("Erro ao atualizar nome.");
     } finally {
