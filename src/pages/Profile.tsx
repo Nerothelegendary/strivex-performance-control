@@ -174,7 +174,7 @@ export default function Profile() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 shrink-0"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(role === "trainer" ? "/trainer" : "/student")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
