@@ -12,12 +12,14 @@ interface FeedEntry {
   is_read: boolean;
   created_at: string;
   student_id: string;
+  student_name?: string;
 }
 
 export function ActivityFeed() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<FeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [studentNames, setStudentNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user) loadFeed();
@@ -32,13 +34,21 @@ export function ActivityFeed() {
         schema: "public",
         table: "activity_feed",
         filter: `trainer_id=eq.${user.id}`,
-      }, (payload) => {
-        setEntries((prev) => [payload.new as FeedEntry, ...prev].slice(0, 20));
+      }, async (payload) => {
+        const newEntry = payload.new as FeedEntry;
+        // Resolve name if not cached
+        if (!studentNames[newEntry.student_id]) {
+          const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", newEntry.student_id).single();
+          if (p?.full_name) {
+            setStudentNames((prev) => ({ ...prev, [newEntry.student_id]: p.full_name }));
+          }
+        }
+        setEntries((prev) => [newEntry, ...prev].slice(0, 20));
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, studentNames]);
 
   const loadFeed = async () => {
     if (!user) return;
@@ -48,8 +58,23 @@ export function ActivityFeed() {
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    setEntries(data ?? []);
+    const feedData = data ?? [];
+    setEntries(feedData);
+
+    // Load all student names
+    const studentIds = [...new Set(feedData.map((e) => e.student_id))];
+    if (studentIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", studentIds);
+      const nameMap: Record<string, string> = {};
+      profiles?.forEach((p) => { nameMap[p.user_id] = p.full_name || "Aluno"; });
+      setStudentNames(nameMap);
+    }
     setLoading(false);
+  };
+
+  const resolveMessage = (entry: FeedEntry) => {
+    const name = studentNames[entry.student_id] || "Aluno";
+    return entry.message.replace(/Aluno/g, name);
   };
 
   const markAllRead = async () => {
@@ -64,7 +89,7 @@ export function ActivityFeed() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "personal_best": return <Trophy className="h-3.5 w-3.5 text-yellow-400" />;
+      case "personal_best": return <Trophy className="h-3.5 w-3.5 text-status-yellow" />;
       default: return <Dumbbell className="h-3.5 w-3.5 text-accent" />;
     }
   };
@@ -94,7 +119,7 @@ export function ActivityFeed() {
           <div key={e.id} className={`flex items-start gap-2.5 px-3 py-2 rounded-lg transition-colors ${e.is_read ? "bg-transparent" : "bg-accent/5"}`}>
             <div className="mt-0.5">{getIcon(e.event_type)}</div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-foreground/80">{e.message}</p>
+              <p className="text-xs text-foreground/80">{resolveMessage(e)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
                 {formatDistanceToNow(new Date(e.created_at), { addSuffix: true, locale: ptBR })}
               </p>
