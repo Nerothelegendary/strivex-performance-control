@@ -50,13 +50,9 @@ export default function TrainerDashboard() {
 
     const [profilesRes, lastSessionsRes, weeklySessionsRes, templatesRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", studentIds),
-      // Fetch only the most recent session per student (for last_session_at display)
-      supabase.from("workout_sessions")
-        .select("student_id, executed_at")
-        .in("student_id", studentIds)
-        .order("executed_at", { ascending: false })
-        .limit(studentIds.length * 1), // one per student is enough for last-session tracking
-      // Separate bounded query for weekly count
+      // Server-side MAX(executed_at) per student — index-backed, no client-side Map needed
+      supabase.rpc("get_last_sessions", { p_student_ids: studentIds }),
+      // Bounded weekly count with date filter — hits idx_workout_sessions_student_executed_desc
       supabase.from("workout_sessions")
         .select("id", { count: "exact", head: true })
         .in("student_id", studentIds)
@@ -65,11 +61,12 @@ export default function TrainerDashboard() {
     ]);
 
     const profiles = profilesRes.data;
-    const lastSessions = lastSessionsRes.data;
+    const lastSessions = (lastSessionsRes.data ?? []) as { student_id: string; last_session_at: string | null }[];
     const templates = templatesRes.data;
 
+    // Server already returns one row per student — O(n) Map from a pre-aggregated result
     const lastSessionMap = new Map<string, string>();
-    lastSessions?.forEach((s) => { if (!lastSessionMap.has(s.student_id)) lastSessionMap.set(s.student_id, s.executed_at); });
+    lastSessions.forEach((s) => { if (s.last_session_at) lastSessionMap.set(s.student_id, s.last_session_at); });
 
     const templateCountMap = new Map<string, number>();
     templates?.forEach((t) => { templateCountMap.set(t.student_id, (templateCountMap.get(t.student_id) ?? 0) + 1); });

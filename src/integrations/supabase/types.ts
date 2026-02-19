@@ -405,6 +405,13 @@ export type Database = {
     }
     Functions: {
       accept_invitation_token: { Args: { p_token: string }; Returns: Json }
+      get_last_sessions: {
+        Args: { p_student_ids: string[] }
+        Returns: {
+          last_session_at: string
+          student_id: string
+        }[]
+      }
       get_personal_bests: {
         Args: { p_student_id: string }
         Returns: {
