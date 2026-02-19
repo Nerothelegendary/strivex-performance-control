@@ -22,8 +22,8 @@ export function StudentCard({ studentId, fullName, lastSessionAt, assignedTempla
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     if (diffHours < 1) return "Agora mesmo";
-    if (diffDays < 1) return `${diffHours} hora(s) atrás`;
-    return `${diffDays} dia(s) atrás`;
+    if (diffDays < 1) return `${diffHours} ${diffHours === 1 ? "hora" : "horas"} atrás`;
+    return `${diffDays} ${diffDays === 1 ? "dia" : "dias"} atrás`;
   };
 
   return (
