@@ -285,13 +285,16 @@ export default function WorkoutSession() {
           message: `${studentName} completou o treino "${template.name}" (${dbTotalVolume.toLocaleString()} kg vol.)`,
         });
 
-        for (const pr of newPRs) {
-          await supabase.from("activity_feed").insert({
-            trainer_id: trainerId,
-            student_id: user.id,
-            event_type: "personal_best",
-            message: `🏆 ${studentName} bateu recorde em ${pr.name}: ${pr.weight} kg!`,
-          });
+        // Batch insert all PRs in a single round-trip
+        if (newPRs.length > 0) {
+          await supabase.from("activity_feed").insert(
+            newPRs.map((pr) => ({
+              trainer_id: trainerId,
+              student_id: user.id,
+              event_type: "personal_best",
+              message: `🏆 ${studentName} bateu recorde em ${pr.name}: ${pr.weight} kg!`,
+            }))
+          );
         }
       }
     } catch (e) {
@@ -373,6 +376,9 @@ export default function WorkoutSession() {
                         />
                         <Input
                           type="number"
+                          inputMode="decimal"
+                          step="0.5"
+                          min="0"
                           value={s.actual_weight}
                           className="h-8 text-sm"
                           onChange={(e) =>
