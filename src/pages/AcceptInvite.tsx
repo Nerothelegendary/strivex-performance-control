@@ -25,7 +25,7 @@ export default function AcceptInvite() {
       await supabase.from("invitations").update({ used_by: user.id, used_at: new Date().toISOString() }).eq("id", invite.id);
       toast.success("Convite aceito com sucesso!");
       setStatus("success");
-      setTimeout(() => { window.location.href = "/"; }, 1500);
+      setTimeout(() => { window.location.href = "/student"; }, 1500);
     };
     accept();
   }, [user, token, role, navigate]);
