@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ArrowLeft, GripVertical } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, GripVertical, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ExerciseCombobox } from "@/components/trainer/ExerciseCombobox";
@@ -21,6 +21,11 @@ export default function TemplateDetail() {
   const [template, setTemplate] = useState<Tables<"workout_templates"> | null>(null);
   const [exercises, setExercises] = useState<ExerciseWithSets[]>([]);
   const [newExercise, setNewExercise] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [editDesc, setEditDesc] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (id) load();
@@ -72,6 +77,38 @@ export default function TemplateDetail() {
     load();
   };
 
+  const saveTemplateName = async () => {
+    const trimmed = editName.trim();
+    if (!trimmed || !template || trimmed === template.name) {
+      setEditingName(false);
+      return;
+    }
+    await supabase.from("workout_templates").update({ name: trimmed }).eq("id", template.id);
+    setTemplate({ ...template, name: trimmed });
+    setEditingName(false);
+    toast.success("Nome atualizado.");
+  };
+
+  const saveTemplateDesc = async () => {
+    if (!template) { setEditingDesc(false); return; }
+    const trimmed = editDesc.trim();
+    const newDesc = trimmed || null;
+    if (newDesc === (template.description || null)) {
+      setEditingDesc(false);
+      return;
+    }
+    await supabase.from("workout_templates").update({ description: newDesc }).eq("id", template.id);
+    setTemplate({ ...template, description: newDesc });
+    setEditingDesc(false);
+    toast.success("Descrição atualizada.");
+  };
+
+  const startEditingName = () => {
+    setEditName(template?.name || "");
+    setEditingName(true);
+    setTimeout(() => nameInputRef.current?.focus(), 50);
+  };
+
   if (!template) return null;
 
   return (
@@ -88,11 +125,51 @@ export default function TemplateDetail() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-base font-bold tracking-tight text-foreground truncate uppercase">
-              {template.name}
-            </h1>
-            {template.description && (
-              <p className="text-[11px] text-muted-foreground truncate">{template.description}</p>
+            {editingName ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  ref={nameInputRef}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={saveTemplateName}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveTemplateName(); if (e.key === "Escape") setEditingName(false); }}
+                  className="flex-1 min-w-0 text-base font-bold tracking-tight text-foreground uppercase bg-transparent border-b border-accent/50 outline-none py-0.5"
+                />
+                <button onClick={saveTemplateName} className="p-1 text-accent hover:text-accent/80">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={startEditingName}
+                className="group flex items-center gap-1.5 min-w-0 w-full text-left"
+              >
+                <h1 className="text-base font-bold tracking-tight text-foreground truncate uppercase">
+                  {template.name}
+                </h1>
+                <Pencil className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground shrink-0 transition-colors" />
+              </button>
+            )}
+            {editingDesc ? (
+              <input
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                onBlur={saveTemplateDesc}
+                onKeyDown={(e) => { if (e.key === "Enter") saveTemplateDesc(); if (e.key === "Escape") setEditingDesc(false); }}
+                placeholder="Descrição (opcional)"
+                className="w-full text-[11px] text-muted-foreground bg-transparent border-b border-accent/30 outline-none py-0.5 mt-0.5 placeholder:text-muted-foreground/30"
+                autoFocus
+              />
+            ) : (
+              <button
+                onClick={() => { setEditDesc(template.description || ""); setEditingDesc(true); }}
+                className="group flex items-center gap-1 text-left w-full mt-0.5"
+              >
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {template.description || "Adicionar descrição..."}
+                </p>
+                <Pencil className="h-2.5 w-2.5 text-muted-foreground/20 group-hover:text-muted-foreground/50 shrink-0 transition-colors" />
+              </button>
             )}
           </div>
           <span className="text-[10px] text-muted-foreground tabular-nums font-medium shrink-0">
