@@ -42,16 +42,37 @@ export default function EnterInvite() {
   const handleSubmit = async () => {
     if (!user || !code.trim() || loading) return;
     setLoading(true);
+
     const token = extractToken(code);
 
-    const { data: invite, error: findErr } = await supabase.from("invitations").select("*").eq("token", token).is("used_by", null).maybeSingle();
-    if (findErr || !invite) { toast.error("Código inválido ou já utilizado."); setLoading(false); return; }
-    if (new Date(invite.expires_at) < new Date()) { toast.error("Este convite expirou."); setLoading(false); return; }
+    // All validation + insertion happens atomically inside the RPC.
+    // No direct INSERT into trainer_students is possible from the client.
+    const { data, error } = await supabase.rpc("accept_invitation_token", {
+      p_token: token,
+    });
 
-    const { error: linkErr } = await supabase.from("trainer_students").insert({ trainer_id: invite.trainer_id, student_id: user.id });
-    if (linkErr && !linkErr.message.includes("duplicate")) { toast.error("Erro ao aceitar convite."); setLoading(false); return; }
+    if (error) {
+      const msg = error.message ?? "";
+      if (msg.includes("INVALID_TOKEN")) {
+        toast.error("Código inválido ou já utilizado.");
+      } else if (msg.includes("EXPIRED_TOKEN")) {
+        toast.error("Este convite expirou.");
+      } else if (msg.includes("NOT_STUDENT")) {
+        toast.error("Apenas estudantes podem aceitar convites.");
+      } else {
+        toast.error("Erro ao aceitar convite. Tente novamente.");
+      }
+      setLoading(false);
+      return;
+    }
 
-    await supabase.from("invitations").update({ used_by: user.id, used_at: new Date().toISOString() }).eq("id", invite.id);
+    const result = data as { success: boolean } | null;
+    if (!result?.success) {
+      toast.error("Erro inesperado ao aceitar convite.");
+      setLoading(false);
+      return;
+    }
+
     toast.success("Convite aceito com sucesso!");
     setTimeout(() => { window.location.href = "/student"; }, 1200);
   };

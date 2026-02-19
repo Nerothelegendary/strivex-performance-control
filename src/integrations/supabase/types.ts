@@ -404,6 +404,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation_token: { Args: { p_token: string }; Returns: Json }
       get_personal_bests: {
         Args: { p_student_id: string }
         Returns: {
