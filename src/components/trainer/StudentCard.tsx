@@ -16,9 +16,15 @@ export function StudentCard({ studentId, fullName, lastSessionAt, assignedTempla
   const navigate = useNavigate();
   const status = getStatusInfo(lastSessionAt, assignedTemplates);
 
-  const daysSinceLastSession = lastSessionAt
-    ? Math.floor((Date.now() - new Date(lastSessionAt).getTime()) / (1000 * 60 * 60 * 24))
-    : null;
+  const getLastActivityLabel = () => {
+    if (!lastSessionAt) return "—";
+    const diffMs = Date.now() - new Date(lastSessionAt).getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffHours < 1) return "Agora mesmo";
+    if (diffDays < 1) return `${diffHours} hora(s) atrás`;
+    return `${diffDays} dia(s) atrás`;
+  };
 
   return (
     <div
@@ -34,7 +40,7 @@ export function StudentCard({ studentId, fullName, lastSessionAt, assignedTempla
           Treino ativo: {assignedTemplates > 0 ? `${assignedTemplates} atribuído(s)` : "Nenhum"}
         </p>
         <p className="text-xs text-muted-foreground">
-          Última atividade: {daysSinceLastSession !== null ? `${daysSinceLastSession} dia(s) atrás` : "—"}
+          Última atividade: {getLastActivityLabel()}
         </p>
       </div>
       <div className="flex justify-end gap-1.5 pt-1">
