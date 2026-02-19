@@ -404,7 +404,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_personal_bests: {
+        Args: { p_student_id: string }
+        Returns: {
+          exercise_name: string
+          max_volume: number
+          max_weight: number
+        }[]
+      }
       get_trainer_id: { Args: { _student_user_id: string }; Returns: string }
+      get_volume_by_exercise: {
+        Args: { p_student_id: string }
+        Returns: {
+          exercise_name: string
+          total_volume: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
