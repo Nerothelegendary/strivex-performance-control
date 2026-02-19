@@ -1,100 +1,81 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 
 interface VolumeChartProps {
   studentId: string;
 }
 
 interface ChartPoint {
-  date: string;
-  volume: number;
+  exercise_name: string;
+  total_volume: number;
 }
 
 export function VolumeChart({ studentId }: VolumeChartProps) {
   const [data, setData] = useState<ChartPoint[]>([]);
-  const [exerciseNames, setExerciseNames] = useState<string[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<string>("__all__");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, [studentId]);
 
   const loadData = async () => {
-    const { data: sessions } = await supabase
-      .from("workout_sessions")
-      .select("id, executed_at, total_volume")
-      .eq("student_id", studentId)
-      .order("executed_at");
+    setLoading(true);
+    const { data: result, error } = await supabase.rpc("get_volume_by_exercise", {
+      p_student_id: studentId,
+    });
 
-    if (!sessions || sessions.length === 0) return;
-
-    // Get unique exercise names from session sets
-    const { data: sets } = await supabase
-      .from("session_sets")
-      .select("exercise_name, session_id, reps, weight")
-      .in("session_id", sessions.map((s) => s.id));
-
-    const names = [...new Set(sets?.map((s) => s.exercise_name) ?? [])].sort();
-    setExerciseNames(names);
-
-    // Build chart data
-    if (selectedExercise === "__all__") {
-      setData(sessions.map((s) => ({
-        date: new Date(s.executed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
-        volume: Number(s.total_volume),
-      })));
-    } else {
-      // Per-exercise volume
-      const sessionMap = new Map(sessions.map((s) => [s.id, s.executed_at]));
-      const points: ChartPoint[] = [];
-      const grouped = new Map<string, number>();
-
-      sets?.forEach((s) => {
-        if (s.exercise_name !== selectedExercise) return;
-        const date = sessionMap.get(s.session_id);
-        if (!date) return;
-        const key = new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-        grouped.set(key, (grouped.get(key) ?? 0) + s.reps * Number(s.weight));
-      });
-
-      grouped.forEach((volume, date) => points.push({ date, volume }));
-      setData(points);
+    if (error) {
+      console.warn("VolumeChart RPC error:", error.message);
+      setLoading(false);
+      return;
     }
+
+    setData(
+      (result ?? [])
+        .slice(0, 8)
+        .map((row) => ({
+          exercise_name: row.exercise_name,
+          total_volume: Number(row.total_volume),
+        }))
+    );
+    setLoading(false);
   };
 
-  useEffect(() => {
-    loadData();
-  }, [selectedExercise]);
-
-  if (data.length === 0) {
+  if (!loading && data.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para gráfico.</p>;
   }
 
+  if (loading) {
+    return (
+      <div className="h-[220px] flex items-center justify-center">
+        <span className="text-xs text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
+
+  const formatName = (name: string) =>
+    name.length > 14 ? name.slice(0, 13) + "…" : name;
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-foreground">Volume ao Longo do Tempo</h4>
-        <Select value={selectedExercise} onValueChange={setSelectedExercise}>
-          <SelectTrigger className="w-[180px] h-8 text-xs">
-            <SelectValue placeholder="Exercício" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos (Volume Total)</SelectItem>
-            {exerciseNames.map((name) => (
-              <SelectItem key={name} value={name}>{name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <h4 className="text-sm font-medium text-foreground">Volume por Exercício</h4>
 
       <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 20% 18%)" />
-          <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(215 16% 47%)" }} />
-          <YAxis tick={{ fontSize: 10, fill: "hsl(215 16% 47%)" }} />
+        <BarChart data={data} layout="vertical" margin={{ top: 2, right: 8, left: 0, bottom: 2 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 20% 18%)" horizontal={false} />
+          <XAxis
+            type="number"
+            tick={{ fontSize: 10, fill: "hsl(215 16% 47%)" }}
+            tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+          />
+          <YAxis
+            type="category"
+            dataKey="exercise_name"
+            width={90}
+            tick={{ fontSize: 10, fill: "hsl(215 16% 47%)" }}
+            tickFormatter={formatName}
+          />
           <Tooltip
             contentStyle={{
               background: "hsl(222 47% 11%)",
@@ -103,10 +84,17 @@ export function VolumeChart({ studentId }: VolumeChartProps) {
               fontSize: "12px",
               color: "hsl(210 20% 95%)",
             }}
-            formatter={(value: number) => [`${value.toLocaleString()} kg`, "Volume"]}
+            formatter={(value: number) => [`${value.toLocaleString()} kg`, "Volume Total"]}
           />
-          <Line type="monotone" dataKey="volume" stroke="hsl(217 91% 60%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(217 91% 60%)" }} />
-        </LineChart>
+          <Bar dataKey="total_volume" radius={[0, 4, 4, 0]}>
+            {data.map((_, index) => (
+              <Cell
+                key={index}
+                fill={`hsl(217 91% ${Math.max(40, 60 - index * 3)}%)`}
+              />
+            ))}
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
