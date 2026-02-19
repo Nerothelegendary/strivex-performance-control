@@ -4,10 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Dumbbell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, profile, role, loading, signOut } = useAuth();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -52,10 +53,12 @@ export function Layout({ children }: { children: ReactNode }) {
               <p className="text-sm font-medium leading-none text-foreground">Olá, {firstName}</p>
               <p className="text-[11px] text-muted-foreground">{roleLabel}</p>
             </div>
-            <Avatar className="h-7 w-7 border border-border">
-              <AvatarImage src={profile?.avatar_url ?? undefined} />
-              <AvatarFallback className="text-xs bg-secondary text-muted-foreground">{initials}</AvatarFallback>
-            </Avatar>
+            <button onClick={() => navigate("/profile")} className="rounded-full active:scale-95 transition-transform">
+              <Avatar className="h-7 w-7 border border-border">
+                <AvatarImage src={profile?.avatar_url ?? undefined} />
+                <AvatarFallback className="text-xs bg-secondary text-muted-foreground">{initials}</AvatarFallback>
+              </Avatar>
+            </button>
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8">
               <LogOut className="h-4 w-4" />
             </Button>
