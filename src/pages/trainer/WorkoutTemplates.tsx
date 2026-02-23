@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, ChevronRight, Trash2, ArrowLeft, Copy, Pencil, Check } from "lucide-react";
+import { Plus, ChevronRight, Trash2, ArrowLeft, Copy, Pencil, Check, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -162,8 +162,21 @@ export default function WorkoutTemplates() {
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando...</p>
         ) : templates.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card/20 py-12 text-center">
-            <p className="text-sm text-muted-foreground">Nenhum modelo criado.</p>
+          <div className="rounded-xl border border-dashed border-border bg-card/20 py-16 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+              <ClipboardList className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <p className="text-base font-medium text-foreground/70">Nenhum modelo de treino ainda</p>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-xs mx-auto">
+              Crie seu primeiro modelo para começar a montar rotinas personalizadas para seus alunos.
+            </p>
+            <Button
+              size="sm"
+              className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => setOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Criar primeiro modelo
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">
