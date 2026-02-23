@@ -428,6 +428,14 @@ export type Database = {
           total_volume: number
         }[]
       }
+      get_weekly_volume: {
+        Args: { p_student_id: string }
+        Returns: {
+          session_count: number
+          total_volume: number
+          week_start: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

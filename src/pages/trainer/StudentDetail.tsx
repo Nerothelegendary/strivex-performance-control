@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PlannedVsActual } from "@/components/trainer/PlannedVsActual";
 import { VolumeChart } from "@/components/trainer/VolumeChart";
+import { WeeklyVolumeChart } from "@/components/trainer/WeeklyVolumeChart";
+import { PersonalBests } from "@/components/student/PersonalBests";
 import type { Tables } from "@/integrations/supabase/types";
 
 const PAGE_SIZE = 20;
@@ -169,8 +171,14 @@ export default function StudentDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="progress" className="mt-4">
-            {studentId && <VolumeChart studentId={studentId} />}
+          <TabsContent value="progress" className="mt-4 space-y-6">
+            {studentId && (
+              <>
+                <WeeklyVolumeChart studentId={studentId} />
+                <VolumeChart studentId={studentId} />
+                <PersonalBests userId={studentId} />
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-3 mt-4">
