@@ -94,7 +94,7 @@ export function ActivityFeed() {
     }
   };
 
-  if (loading || entries.length === 0) return null;
+  if (loading) return null;
 
   return (
     <div className="space-y-3">
@@ -114,6 +114,15 @@ export function ActivityFeed() {
           </button>
         )}
       </div>
+      {entries.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-card/20 py-8 text-center">
+          <Bell className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">Nenhuma atividade ainda.</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">
+            Quando seus alunos treinarem, as notificações aparecerão aqui.
+          </p>
+        </div>
+      ) : (
       <div className="space-y-1.5 max-h-64 overflow-y-auto">
         {entries.map((e) => (
           <div key={e.id} className={`flex items-start gap-2.5 px-3 py-2 rounded-lg transition-colors ${e.is_read ? "bg-transparent" : "bg-accent/5"}`}>
@@ -128,6 +137,7 @@ export function ActivityFeed() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
