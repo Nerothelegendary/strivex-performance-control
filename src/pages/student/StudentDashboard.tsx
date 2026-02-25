@@ -9,6 +9,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PersonalBests } from "@/components/student/PersonalBests";
+import { WorkoutStreak } from "@/components/student/WorkoutStreak";
+import { RecentPRBanner } from "@/components/student/RecentPRBanner";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -98,6 +100,14 @@ export default function StudentDashboard() {
             <span className="hidden sm:inline text-xs">Histórico</span>
           </Button>
         </div>
+
+        {/* Streak & PR Celebration */}
+        {user && (
+          <>
+            <WorkoutStreak userId={user.id} />
+            <RecentPRBanner userId={user.id} />
+          </>
+        )}
 
         {templates.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card/20 py-16 text-center">
