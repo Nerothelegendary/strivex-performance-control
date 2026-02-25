@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Loader2, RotateCcw } from "lucide-react";
+import { RestTimer } from "@/components/student/RestTimer";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import {
@@ -391,6 +392,9 @@ export default function WorkoutSession() {
                 )}
               </div>
             ))}
+
+            {/* Rest Timer */}
+            <RestTimer />
 
             <Textarea
               placeholder="Observações sobre o treino (opcional)"
