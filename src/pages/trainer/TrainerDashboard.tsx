@@ -158,8 +158,8 @@ export default function TrainerDashboard() {
           </div>
         )}
 
-        {/* Onboarding Checklist — only shown while no students are linked */}
-        {!loading && students.length === 0 && (
+        {/* Onboarding Checklist — shown until all 3 steps are complete */}
+        {!loading && (!hasTemplates || students.length === 0 || !hasAssignments) && (
           <OnboardingChecklist
             hasTemplates={hasTemplates}
             hasStudents={students.length > 0}
