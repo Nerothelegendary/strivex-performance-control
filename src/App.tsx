@@ -21,6 +21,7 @@ import WorkoutSummary from "./pages/student/WorkoutSummary";
 import StudentHistory from "./pages/student/StudentHistory";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ function AnimatedRoutes() {
         <Route path="/select-role" element={<SelectRole />} />
         <Route path="/invite" element={<AcceptInvite />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/pricing" element={<Pricing />} />
 
         {/* Trainer routes */}
         <Route path="/trainer" element={<ProtectedRoute allowedRole="trainer"><TrainerDashboard /></ProtectedRoute>} />
