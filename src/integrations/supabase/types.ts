@@ -420,6 +420,10 @@ export type Database = {
           max_weight: number
         }[]
       }
+      get_trainer_dashboard_summary: {
+        Args: { p_trainer_id: string }
+        Returns: Json
+      }
       get_trainer_id: { Args: { _student_user_id: string }; Returns: string }
       get_volume_by_exercise: {
         Args: { p_student_id: string }

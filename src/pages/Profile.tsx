@@ -21,7 +21,9 @@ import {
   Loader2,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 
 export default function Profile() {
@@ -33,6 +35,8 @@ export default function Profile() {
   const [nameValue, setNameValue] = useState("");
   const [uploading, setUploading] = useState(false);
   const [savingName, setSavingName] = useState(false);
+  const [canChangeRole, setCanChangeRole] = useState(false);
+  const [changingRole, setChangingRole] = useState(false);
 
   // Role-specific stats
   const [stats, setStats] = useState<{ label1: string; value1: number; label2: string; value2: number }>({
@@ -53,6 +57,7 @@ export default function Profile() {
   useEffect(() => {
     if (!user || !role) return;
     loadStats();
+    checkRoleChangeEligibility();
   }, [user, role]);
 
   const loadStats = async () => {
@@ -81,6 +86,44 @@ export default function Profile() {
       }
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const checkRoleChangeEligibility = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("created_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!data) return;
+    const createdAt = new Date(data.created_at);
+    const hoursSince = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
+    setCanChangeRole(hoursSince < 24);
+  };
+
+  const handleChangeRole = async () => {
+    if (!user || !role) return;
+    setChangingRole(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", user.id);
+      if (deleteError) throw deleteError;
+
+      const newRole = role === "trainer" ? "student" : "trainer";
+      const { error: insertError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: user.id, role: newRole });
+      if (insertError) throw insertError;
+
+      toast.success("Perfil alterado! Recarregando...");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) {
+      console.error("Role change error:", err);
+      toast.error("Erro ao trocar perfil. O prazo de 24h pode ter expirado.");
+      setChangingRole(false);
     }
   };
 
@@ -280,6 +323,32 @@ export default function Profile() {
             </button>
           )}
         </div>
+
+        {/* Role Change (within 24h) */}
+        {canChangeRole && (
+          <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
+            <p className="text-xs font-semibold text-muted-foreground px-4 pt-4 pb-2 uppercase tracking-wider">Perfil</p>
+            <ConfirmDialog
+              trigger={
+                <button
+                  className="flex items-center gap-3 px-4 py-3.5 border-t border-border/50 w-full text-left hover:bg-secondary/50 transition-colors active:bg-secondary"
+                  disabled={changingRole}
+                >
+                  <RefreshCw className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-sm text-foreground">Trocar para {role === "trainer" ? "Aluno" : "Treinador"}</span>
+                    <p className="text-[11px] text-muted-foreground">Disponível nas primeiras 24h</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              }
+              title="Trocar perfil?"
+              description={`Isso removerá seu perfil de ${role === "trainer" ? "Treinador" : "Aluno"} e criará um novo como ${role === "trainer" ? "Aluno" : "Treinador"}. Esta ação não pode ser desfeita.`}
+              confirmLabel={changingRole ? "Trocando..." : "Confirmar Troca"}
+              onConfirm={handleChangeRole}
+            />
+          </div>
+        )}
 
         {/* Danger Zone */}
         <div className="pt-2">
