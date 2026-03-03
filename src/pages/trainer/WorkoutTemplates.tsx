@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, ChevronRight, Trash2, ArrowLeft, Copy, Pencil, Check, ClipboardList } from "lucide-react";
+import { Plus, ChevronRight, Trash2, ArrowLeft, Copy, Pencil, Check, ClipboardList, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { BulkAssignDialog } from "@/components/trainer/BulkAssignDialog";
+import { StarterTemplateLibrary } from "@/components/trainer/StarterTemplateLibrary";
 import type { Tables } from "@/integrations/supabase/types";
 
 export default function WorkoutTemplates() {
@@ -24,6 +25,7 @@ export default function WorkoutTemplates() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const editRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -66,47 +68,13 @@ export default function WorkoutTemplates() {
 
   const duplicateTemplate = async (templateId: string) => {
     if (!user) return;
-    // 1. Get original template
-    const { data: original } = await supabase.from("workout_templates").select("*").eq("id", templateId).single();
-    if (!original) return;
-
-    // 2. Create clone
-    const { data: cloned, error: cloneErr } = await supabase.from("workout_templates")
-      .insert({ trainer_id: user.id, name: `${original.name} (cópia)`, description: original.description })
-      .select("id").single();
-    if (cloneErr || !cloned) { toast.error("Erro ao duplicar."); return; }
-
-    // 3. Clone exercises
-    const { data: exercises } = await supabase.from("template_exercises").select("*").eq("template_id", templateId).order("sort_order");
-    if (exercises && exercises.length > 0) {
-      const exerciseInserts = exercises.map((e) => ({ template_id: cloned.id, name: e.name, sort_order: e.sort_order }));
-      const { data: newExercises } = await supabase.from("template_exercises").insert(exerciseInserts).select("id, sort_order");
-
-      // 4. Clone planned sets
-      if (newExercises) {
-        const { data: sets } = await supabase.from("planned_sets").select("*").in("exercise_id", exercises.map((e) => e.id));
-        if (sets && sets.length > 0) {
-          // Map old exercise_id -> new exercise_id by sort_order
-          const oldToNew = new Map<string, string>();
-          exercises.forEach((oldEx) => {
-            const newEx = newExercises.find((ne) => ne.sort_order === oldEx.sort_order);
-            if (newEx) oldToNew.set(oldEx.id, newEx.id);
-          });
-
-          const setInserts = sets.map((s) => ({
-            exercise_id: oldToNew.get(s.exercise_id)!,
-            set_number: s.set_number,
-            planned_reps: s.planned_reps,
-            planned_weight: s.planned_weight,
-          })).filter((s) => s.exercise_id);
-
-          if (setInserts.length > 0) {
-            await supabase.from("planned_sets").insert(setInserts);
-          }
-        }
-      }
-    }
-
+    setDuplicatingId(templateId);
+    const { error } = await supabase.rpc("clone_workout_template", {
+      p_template_id: templateId,
+      p_new_owner_id: user.id,
+    });
+    setDuplicatingId(null);
+    if (error) { toast.error("Erro ao duplicar."); return; }
     toast.success("Treino duplicado!");
     loadTemplates();
   };
@@ -215,8 +183,8 @@ export default function WorkoutTemplates() {
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
                     <BulkAssignDialog templateId={t.id} templateName={t.name} students={students} onDone={loadTemplates} />
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => duplicateTemplate(t.id)}>
-                      <Copy className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => duplicateTemplate(t.id)} disabled={duplicatingId === t.id}>
+                      {duplicatingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
                     </Button>
                     <ConfirmDialog
                       trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>}
@@ -232,6 +200,8 @@ export default function WorkoutTemplates() {
             ))}
           </div>
         )}
+
+        <StarterTemplateLibrary onCloned={loadTemplates} />
       </div>
     </Layout>
   );

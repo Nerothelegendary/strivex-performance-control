@@ -198,6 +198,42 @@ export type Database = {
           },
         ]
       }
+      starter_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          difficulty_level: string
+          exercise_count: number
+          exercises: Json
+          goal_type: string
+          id: string
+          is_public: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string
+          exercise_count?: number
+          exercises?: Json
+          goal_type?: string
+          id?: string
+          is_public?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string
+          exercise_count?: number
+          exercises?: Json
+          goal_type?: string
+          id?: string
+          is_public?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       student_templates: {
         Row: {
           assigned_at: string
@@ -405,6 +441,14 @@ export type Database = {
     }
     Functions: {
       accept_invitation_token: { Args: { p_token: string }; Returns: Json }
+      clone_starter_template: {
+        Args: { p_new_owner_id: string; p_starter_id: string }
+        Returns: string
+      }
+      clone_workout_template: {
+        Args: { p_new_owner_id: string; p_template_id: string }
+        Returns: string
+      }
       get_last_sessions: {
         Args: { p_student_ids: string[] }
         Returns: {
