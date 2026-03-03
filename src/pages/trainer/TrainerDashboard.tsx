@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Search } from "lucide-react";
+import { Users, Link2, Copy, FileText, ClipboardList, CheckCircle2, Search, ChevronDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,13 @@ interface StudentData {
   assigned_templates: number;
 }
 
+interface DashboardSummary {
+  total_students: number;
+  total_assigned: number;
+  weekly_completed: number;
+  students: StudentData[];
+}
+
 export default function TrainerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -38,62 +45,32 @@ export default function TrainerDashboard() {
 
   useEffect(() => {
     if (!user) return;
-    loadStudents();
+    loadDashboard();
   }, [user]);
 
-  const loadStudents = async () => {
+  const loadDashboard = useCallback(async () => {
     if (!user) return;
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
 
-    const [linksRes, templatesCountRes] = await Promise.all([
-      supabase.from("trainer_students").select("student_id").eq("trainer_id", user.id),
+    const [summaryRes, templatesCountRes] = await Promise.all([
+      supabase.rpc("get_trainer_dashboard_summary", { p_trainer_id: user.id }),
       supabase.from("workout_templates").select("id", { count: "exact", head: true }).eq("trainer_id", user.id),
     ]);
 
     setHasTemplates((templatesCountRes.count ?? 0) > 0);
 
-    const links = linksRes.data;
-    if (!links || links.length === 0) { setStudents([]); setLoading(false); return; }
+    if (summaryRes.error) {
+      console.error("Dashboard summary error:", summaryRes.error);
+      setLoading(false);
+      return;
+    }
 
-    const studentIds = links.map((l) => l.student_id);
-
-    const [profilesRes, lastSessionsRes, weeklySessionsRes, templatesRes] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", studentIds),
-      supabase.rpc("get_last_sessions", { p_student_ids: studentIds }),
-      supabase.from("workout_sessions")
-        .select("id", { count: "exact", head: true })
-        .in("student_id", studentIds)
-        .gte("executed_at", weekAgo.toISOString()),
-      supabase.from("student_templates").select("student_id, template_id").in("student_id", studentIds),
-    ]);
-
-    const profiles = profilesRes.data;
-    const lastSessions = (lastSessionsRes.data ?? []) as { student_id: string; last_session_at: string | null }[];
-    const templates = templatesRes.data;
-
-    const lastSessionMap = new Map<string, string>();
-    lastSessions.forEach((s) => { if (s.last_session_at) lastSessionMap.set(s.student_id, s.last_session_at); });
-
-    const templateCountMap = new Map<string, number>();
-    templates?.forEach((t) => { templateCountMap.set(t.student_id, (templateCountMap.get(t.student_id) ?? 0) + 1); });
-
-    setWeeklyCompleted(weeklySessionsRes.count ?? 0);
-    setTotalAssigned(templates?.length ?? 0);
-    setHasAssignments((templates?.length ?? 0) > 0);
-
-    setStudents(studentIds.map((sid) => {
-      const p = profiles?.find((p) => p.user_id === sid);
-      return {
-        student_id: sid,
-        full_name: p?.full_name ?? null,
-        avatar_url: p?.avatar_url ?? null,
-        last_session_at: lastSessionMap.get(sid) ?? null,
-        assigned_templates: templateCountMap.get(sid) ?? 0,
-      };
-    }));
+    const summary = summaryRes.data as unknown as DashboardSummary;
+    setStudents(summary.students ?? []);
+    setWeeklyCompleted(summary.weekly_completed);
+    setTotalAssigned(summary.total_assigned);
+    setHasAssignments(summary.total_assigned > 0);
     setLoading(false);
-  };
+  }, [user]);
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch = !searchQuery || (s.full_name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
@@ -118,11 +95,10 @@ export default function TrainerDashboard() {
     const { error } = await supabase.from("trainer_students").delete().eq("student_id", studentId).eq("trainer_id", user!.id);
     if (error) { toast.error("Erro ao remover aluno."); return; }
     toast.success("Aluno removido.");
-    loadStudents();
+    loadDashboard();
   };
 
-
-    const statusFilters = [
+  const statusFilters = [
     { key: "success", label: "Em dia" },
     { key: "warning", label: "Atenção" },
     { key: "danger", label: "Inativo" },
@@ -158,7 +134,6 @@ export default function TrainerDashboard() {
           </div>
         )}
 
-        {/* Onboarding Checklist — shown until all 3 steps are complete */}
         {!loading && (!hasTemplates || students.length === 0 || !hasAssignments) && (
           <OnboardingChecklist
             hasTemplates={hasTemplates}
@@ -176,10 +151,8 @@ export default function TrainerDashboard() {
           <MetricCard icon={CheckCircle2} value={weeklyCompleted} label="Concluídos na semana" loading={loading} />
         </div>
 
-        {/* Inactivity Alerts */}
         {!loading && <InactivityAlerts students={students} onStudentClick={(id) => navigate(`/trainer/student/${id}`)} />}
 
-        {/* Activity Feed */}
         <ActivityFeed />
 
         <div className="space-y-4">
@@ -195,7 +168,7 @@ export default function TrainerDashboard() {
 
           <div className="flex gap-2 flex-wrap">
             {statusFilters.map((f) => (
-              <button key={f.label} onClick={() => setStatusFilter(f.key)}
+              <button key={f.label} onClick={() => setStatusFilter(statusFilter === f.key ? null : f.key)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   statusFilter === f.key
                     ? f.key === "success" ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
